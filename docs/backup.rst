@@ -11,13 +11,13 @@ to `ArangoDB manual`_.
 
 .. code-block:: python
 
-    from arango import ArangoClient
+    from aioarango import ArangoClient
 
     # Initialize the ArangoDB client.
     client = ArangoClient()
 
     # Connect to "_system" database as root user.
-    sys_db = client.db(
+    sys_db = await client.db(
         '_system',
         username='root',
         password='passwd',
@@ -28,7 +28,7 @@ to `ArangoDB manual`_.
     backup = sys_db.backup
 
     # Create a backup.
-    result = backup.create(
+    result = await backup.create(
         label='foo',
         allow_inconsistent=True,
         force=False,
@@ -37,13 +37,13 @@ to `ArangoDB manual`_.
     backup_id = result['backup_id']
 
     # Retrieve details on all backups
-    backup.get()
+    await backup.get()
 
     # Retrieve details on a specific backup.
-    backup.get(backup_id=backup_id)
+    await backup.get(backup_id=backup_id)
 
     # Upload a backup to a remote repository.
-    result = backup.upload(
+    result = await backup.upload(
         backup_id=backup_id,
         repository='local://tmp/backups',
         config={'local': {'type': 'local'}}
@@ -51,13 +51,13 @@ to `ArangoDB manual`_.
     upload_id = result['upload_id']
 
     # Get status of an upload.
-    backup.upload(upload_id=upload_id)
+    await backup.upload(upload_id=upload_id)
 
     # Abort an upload.
-    backup.upload(upload_id=upload_id, abort=True)
+    await backup.upload(upload_id=upload_id, abort=True)
 
     # Download a backup from a remote repository.
-    result = backup.download(
+    result = await backup.download(
         backup_id=backup_id,
         repository='local://tmp/backups',
         config={'local': {'type': 'local'}}
@@ -65,15 +65,15 @@ to `ArangoDB manual`_.
     download_id = result['download_id']
 
     # Get status of an download.
-    backup.download(download_id=download_id)
+    await backup.download(download_id=download_id)
 
     # Abort an download.
-    backup.download(download_id=download_id, abort=True)
+    await backup.download(download_id=download_id, abort=True)
 
     # Restore from a backup.
-    backup.restore(backup_id)
+    await backup.restore(backup_id)
 
     # Delete a backup.
-    backup.delete(backup_id)
+    await backup.delete(backup_id)
 
 See :ref:`Backup` for API specification.

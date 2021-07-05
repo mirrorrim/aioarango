@@ -40,8 +40,8 @@ To ensure PEP8_ compliance, run flake8_:
 .. code-block:: bash
 
     ~$ pip install flake8
-    ~$ git clone https://github.com/joowani/python-arango.git
-    ~$ cd python-arango
+    ~$ git clone https://github.com/mirrorrim/aioarango.git
+    ~$ cd aioarango
     ~$ flake8
 
 If there is a good reason to ignore a warning, see here_ on how to exclude it.
@@ -50,25 +50,25 @@ Testing
 =======
 
 To test your changes, you can run the integration test suite that comes with
-**python-arango**. It uses pytest_ and requires an actual ArangoDB instance.
+**aioarango**. It uses pytest_ and requires an actual ArangoDB instance.
 
 To run the test suite (use your own host, port and root password):
 
 .. code-block:: bash
 
     ~$ pip install pytest
-    ~$ git clone https://github.com/joowani/python-arango.git
-    ~$ cd python-arango
-    ~$ py.test --complete --host=127.0.0.1 --port=8529 --passwd=passwd
+    ~$ git clone https://github.com/mirrorrim/aioarango.git
+    ~$ cd aioarango
+    ~$ pytest --complete --host=127.0.0.1 --port=8529 --passwd=passwd
 
 To run the test suite with coverage report:
 
 .. code-block:: bash
 
     ~$ pip install coverage pytest pytest-cov
-    ~$ git clone https://github.com/joowani/python-arango.git
-    ~$ cd python-arango
-    ~$ py.test --complete --host=127.0.0.1 --port=8529 --passwd=passwd --cov=kq
+    ~$ git clone https://github.com/mirrorrim/aioarango.git
+    ~$ cd aioarango
+    ~$ pytest --complete --host=127.0.0.1 --port=8529 --passwd=passwd --cov=kq
 
 As the test suite creates real databases and jobs, it should only be run in
 development environments.
@@ -82,14 +82,14 @@ Sphinx_. To build an HTML version on your local machine:
 .. code-block:: bash
 
     ~$ pip install sphinx sphinx_rtd_theme
-    ~$ git clone https://github.com/joowani/python-arango.git
-    ~$ cd python-arango/docs
+    ~$ git clone https://github.com/mirrorrim/aioarango.git
+    ~$ cd aioarango/docs
     ~$ sphinx-build . build  # Open build/index.html in a browser
 
 As always, thank you for your contribution!
 
-.. _dev: https://github.com/joowani/python-arango/tree/dev
-.. _GitHub: https://github.com/joowani/python-arango
+.. _dev: https://github.com/mirrorrim/aioarango/tree/dev
+.. _GitHub: https://github.com/mirrorrim/aioarango
 .. _PEP8: https://www.python.org/dev/peps/pep-0008/
 .. _coverage: https://coveralls.io/github/joowani/python-arango
 .. _this: http://coverage.readthedocs.io/en/latest/excluding.html

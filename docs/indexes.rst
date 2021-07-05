@@ -13,43 +13,43 @@ on fields ``_from`` and ``_to``. For more information on indexes, refer to
 
 .. testcode::
 
-    from arango import ArangoClient
+    from aioarango import ArangoClient
 
     # Initialize the ArangoDB client.
     client = ArangoClient()
 
     # Connect to "test" database as root user.
-    db = client.db('test', username='root', password='passwd')
+    db = await client.db('test', username='root', password='passwd')
 
     # Create a new collection named "cities".
-    cities = db.create_collection('cities')
+    cities = await db.create_collection('cities')
 
     # List the indexes in the collection.
-    cities.indexes()
+    await cities.indexes()
 
     # Add a new hash index on document fields "continent" and "country".
-    index = cities.add_hash_index(fields=['continent', 'country'], unique=True)
+    index = await cities.add_hash_index(fields=['continent', 'country'], unique=True)
 
     # Add new fulltext indexes on fields "continent" and "country".
-    index = cities.add_fulltext_index(fields=['continent'])
-    index = cities.add_fulltext_index(fields=['country'])
+    index = await cities.add_fulltext_index(fields=['continent'])
+    index = await cities.add_fulltext_index(fields=['country'])
 
     # Add a new skiplist index on field 'population'.
-    index = cities.add_skiplist_index(fields=['population'], sparse=False)
+    index = await cities.add_skiplist_index(fields=['population'], sparse=False)
 
     # Add a new geo-spatial index on field 'coordinates'.
-    index = cities.add_geo_index(fields=['coordinates'])
+    index = await cities.add_geo_index(fields=['coordinates'])
 
     # Add a new persistent index on field 'currency'.
-    index = cities.add_persistent_index(fields=['currency'], sparse=True)
+    index = await cities.add_persistent_index(fields=['currency'], sparse=True)
 
     # Add a new TTL (time-to-live) index on field 'currency'.
-    index = cities.add_ttl_index(fields=['ttl'], expiry_time=200)
+    index = await cities.add_ttl_index(fields=['ttl'], expiry_time=200)
 
     # Indexes may be added with a name that can be referred to in AQL queries.
-    index = cities.add_hash_index(fields=['country'], name='my_hash_index')
+    index = await cities.add_hash_index(fields=['country'], name='my_hash_index')
 
     # Delete the last index from the collection.
-    cities.delete_index(index['id'])
+    await cities.delete_index(index['id'])
 
 See :ref:`StandardCollection` for API specification.

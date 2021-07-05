@@ -1,7 +1,7 @@
 Multithreading
 --------------
 
-There are a few things you should consider before using python-arango in a
+There are a few things you should consider before using aioarango in a
 multithreaded (or multiprocess) architecture.
 
 Stateful Objects
@@ -18,12 +18,12 @@ accessed across multiple threads without locks in place:
 HTTP Sessions
 =============
 
-When :ref:`ArangoClient` is initialized, a `requests.Session`_ instance is
+When :ref:`ArangoClient` is initialized, a `httpx.AsyncClient`_ instance is
 created per ArangoDB host connected. HTTP requests to a host are sent using
 only its corresponding session. For more information on how to override this
 behaviour, see :doc:`http`.
 
-Note that a `requests.Session`_ object may not always be thread-safe. Always
+Note that a `httpx.AsyncClient`_ object may not always be thread-safe. Always
 research your use case!
 
-.. _requests.Session: http://docs.python-requests.org/en/master/user/advanced/#session-objects
+.. _httpx.AsyncClient: https://www.python-httpx.org/advanced/#client-instances

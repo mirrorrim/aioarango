@@ -1,14 +1,14 @@
 Error Handling
 --------------
 
-All python-arango exceptions inherit :class:`arango.exceptions.ArangoError`,
-which splits into subclasses :class:`arango.exceptions.ArangoServerError` and
-:class:`arango.exceptions.ArangoClientError`.
+All aioarango exceptions inherit :class:`aioarango.exceptions.ArangoError`,
+which splits into subclasses :class:`aioarango.exceptions.ArangoServerError` and
+:class:`aioarango.exceptions.ArangoClientError`.
 
 Server Errors
 =============
 
-:class:`arango.exceptions.ArangoServerError` exceptions lightly wrap non-2xx
+:class:`aioarango.exceptions.ArangoServerError` exceptions lightly wrap non-2xx
 HTTP responses coming from ArangoDB. Each exception object contains the error
 message, error code and HTTP request response details.
 
@@ -16,20 +16,20 @@ message, error code and HTTP request response details.
 
 .. testcode::
 
-    from arango import ArangoClient, ArangoServerError, DocumentInsertError
+    from aioarango import ArangoClient, ArangoServerError, DocumentInsertError
 
     # Initialize the ArangoDB client.
     client = ArangoClient()
 
     # Connect to "test" database as root user.
-    db = client.db('test', username='root', password='passwd')
+    db = await client.db('test', username='root', password='passwd')
 
     # Get the API wrapper for "students" collection.
     students = db.collection('students')
 
     try:
-        students.insert({'_key': 'John'})
-        students.insert({'_key': 'John'})  # duplicate key error
+        await students.insert({'_key': 'John'})
+        await students.insert({'_key': 'John'})  # duplicate key error
 
     except DocumentInsertError as exc:
 
@@ -69,27 +69,27 @@ See :ref:`Response` and :ref:`Request` for reference.
 Client Errors
 =============
 
-:class:`arango.exceptions.ArangoClientError` exceptions originate from
-python-arango client itself. They do not contain error codes nor HTTP request
+:class:`aioarango.exceptions.ArangoClientError` exceptions originate from
+aioarango client itself. They do not contain error codes nor HTTP request
 response details.
 
 **Example:**
 
 .. testcode::
 
-    from arango import ArangoClient, ArangoClientError, DocumentParseError
+    from aioarango import ArangoClient, ArangoClientError, DocumentParseError
 
     # Initialize the ArangoDB client.
     client = ArangoClient()
 
     # Connect to "test" database as root user.
-    db = client.db('test', username='root', password='passwd')
+    db = await client.db('test', username='root', password='passwd')
 
     # Get the API wrapper for "students" collection.
     students = db.collection('students')
 
     try:
-        students.get({'_id': 'invalid_id'})  # malformed document
+        await students.get({'_id': 'invalid_id'})  # malformed document
 
     except DocumentParseError as exc:
 
@@ -110,9 +110,9 @@ response details.
 Exceptions
 ==========
 
-Below are all exceptions from python-arango.
+Below are all exceptions from aioarango.
 
-.. automodule:: arango.exceptions
+.. automodule:: aioarango.exceptions
     :members:
 
 
@@ -122,5 +122,5 @@ Error Codes
 The `errno` module contains a constant mapping to `ArangoDB's error codes
 <https://www.arangodb.com/docs/stable/appendix-error-codes.html>`_.
 
-.. automodule:: arango.errno
+.. automodule:: aioarango.errno
     :members:

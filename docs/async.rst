@@ -1,7 +1,7 @@
 Async API Execution
 -------------------
 
-In **asynchronous API executions**, python-arango sends API requests to ArangoDB in
+In **asynchronous API executions**, aioarango sends API requests to ArangoDB in
 fire-and-forget style. The server processes the requests in the background, and
 the results can be retrieved once available via :ref:`AsyncJob` objects.
 
@@ -10,8 +10,9 @@ the results can be retrieved once available via :ref:`AsyncJob` objects.
 .. testcode::
 
     import time
+    import asyncio
 
-    from arango import (
+    from aioarango import (
         ArangoClient,
         AQLQueryExecuteError,
         AsyncJobCancelError,
@@ -22,7 +23,7 @@ the results can be retrieved once available via :ref:`AsyncJob` objects.
     client = ArangoClient()
 
     # Connect to "test" database as root user.
-    db = client.db('test', username='root', password='passwd')
+    db = await client.db('test', username='root', password='passwd')
 
     # Begin async execution. This returns an instance of AsyncDatabase, a
     # database-level API wrapper tailored specifically for async execution.
@@ -38,33 +39,33 @@ the results can be retrieved once available via :ref:`AsyncJob` objects.
     assert async_col.context == 'async'
 
     # On API execution, AsyncJob objects are returned instead of results.
-    job1 = async_col.insert({'_key': 'Neal'})
-    job2 = async_col.insert({'_key': 'Lily'})
-    job3 = async_aql.execute('RETURN 100000')
-    job4 = async_aql.execute('INVALID QUERY')  # Fails due to syntax error.
+    job1 = await async_col.insert({'_key': 'Neal'})
+    job2 = await async_col.insert({'_key': 'Lily'})
+    job3 = await async_aql.execute('RETURN 100000')
+    job4 = await async_aql.execute('INVALID QUERY')  # Fails due to syntax error.
 
     # Retrieve the status of each async job.
     for job in [job1, job2, job3, job4]:
         # Job status can be "pending", "done" or "cancelled".
-        assert job.status() in {'pending', 'done', 'cancelled'}
+        assert await job.status() in {'pending', 'done', 'cancelled'}
 
         # Let's wait until the jobs are finished.
-        while job.status() != 'done':
-            time.sleep(0.1)
+        while await job.status() != 'done':
+            asyncio.sleep(0.1)
 
     # Retrieve the results of successful jobs.
-    metadata = job1.result()
+    metadata = await job1.result()
     assert metadata['_id'] == 'students/Neal'
 
-    metadata = job2.result()
+    metadata = await job2.result()
     assert metadata['_id'] == 'students/Lily'
 
-    cursor = job3.result()
-    assert cursor.next() == 100000
+    cursor = await job3.result()
+    assert await cursor.next() == 100000
 
     # If a job fails, the exception is propagated up during result retrieval.
     try:
-        result = job4.result()
+        await result = job4.result()
     except AQLQueryExecuteError as err:
         assert err.http_code == 400
         assert err.error_code == 1501
@@ -73,7 +74,7 @@ the results can be retrieved once available via :ref:`AsyncJob` objects.
     # Cancel a job. Only pending jobs still in queue may be cancelled.
     # Since job3 is done, there is nothing to cancel and an exception is raised.
     try:
-        job3.cancel()
+        await job3.cancel()
     except AsyncJobCancelError as err:
         assert err.message.endswith(f'job {job3.id} not found')
 
@@ -81,18 +82,18 @@ the results can be retrieved once available via :ref:`AsyncJob` objects.
     # Result of job4 was removed from the server automatically upon retrieval,
     # so attempt to clear it raises an exception.
     try:
-        job4.clear()
+        await job4.clear()
     except AsyncJobClearError as err:
         assert err.message.endswith(f'job {job4.id} not found')
 
     # List the IDs of the first 100 async jobs completed.
-    db.async_jobs(status='done', count=100)
+    await db.async_jobs(status='done', count=100)
 
     # List the IDs of the first 100 async jobs still pending.
-    db.async_jobs(status='pending', count=100)
+    await db.async_jobs(status='pending', count=100)
 
     # Clear all async jobs still sitting on the server.
-    db.clear_async_jobs()
+    await db.clear_async_jobs()
 
 .. note::
     Be mindful of server-side memory capacity when issuing a large number of

@@ -12,35 +12,35 @@ information, refer to `ArangoDB manual`_.
 
 .. code-block:: python
 
-    from arango import ArangoClient
+    from aioarango import ArangoClient
 
     # Initialize the ArangoDB client.
     client = ArangoClient()
 
     # Connect to "test" database as root user.
-    db = client.db('test', username='root', password='passwd')
+    db = await client.db('test', username='root', password='passwd')
 
     # Get the Replication API wrapper.
     replication = db.replication
 
     # Create a new dump batch.
-    batch = replication.create_dump_batch(ttl=1000)
+    batch = await replication.create_dump_batch(ttl=1000)
 
     # Extend an existing dump batch.
-    replication.extend_dump_batch(batch['id'], ttl=1000)
+    await replication.extend_dump_batch(batch['id'], ttl=1000)
 
     # Get an overview of collections and indexes.
-    replication.inventory(
+    await replication.inventory(
         batch_id=batch['id'],
         include_system=True,
         all_databases=True
     )
 
     # Get an overview of collections and indexes in a cluster.
-    replication.cluster_inventory(include_system=True)
+    await replication.cluster_inventory(include_system=True)
 
     # Get the events data for given collection.
-    replication.dump(
+    await replication.dump(
         collection='students',
         batch_id=batch['id'],
         lower=0,
@@ -52,19 +52,19 @@ information, refer to `ArangoDB manual`_.
     )
 
     # Delete an existing dump batch.
-    replication.delete_dump_batch(batch['id'])
+    await replication.delete_dump_batch(batch['id'])
 
     # Get the logger state.
-    replication.logger_state()
+    await replication.logger_state()
 
     # Get the logger first tick value.
-    replication.logger_first_tick()
+    await replication.logger_first_tick()
 
     # Get the replication applier configuration.
-    replication.applier_config()
+    await replication.applier_config()
 
     # Update the replication applier configuration.
-    result = replication.set_applier_config(
+    result = await replication.set_applier_config(
         endpoint='http://127.0.0.1:8529',
         database='test',
         username='root',
@@ -89,19 +89,19 @@ information, refer to `ArangoDB manual`_.
     )
 
     # Get the replication applier state.
-    replication.applier_state()
+    await replication.applier_state()
 
     # Start the replication applier.
-    replication.start_applier()
+    await replication.start_applier()
 
     # Stop the replication applier.
-    replication.stop_applier()
+    await replication.stop_applier()
 
     # Get the server ID.
-    replication.server_id()
+    await replication.server_id()
 
     # Synchronize data from a remote (master) endpoint
-    replication.synchronize(
+    await replication.synchronize(
         endpoint='tcp://master:8500',
         database='test',
         username='root',

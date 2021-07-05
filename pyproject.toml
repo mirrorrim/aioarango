@@ -1,10 +1,46 @@
-[build-system]
-requires = [
-    "setuptools>=42",
-    "setuptools_scm[toml]>=3.4",
-    "wheel",
+[tool.poetry]
+name = "aioarango"
+version = "1.0.0"
+description = "Asynchronous driver for ArangoDB"
+authors = ["Alexey Tylindus <a.tylindus@gmail.com>"]
+license = "MIT"
+classifiers = [
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: Unix",
+    "Programming Language :: Python :: 3",
+    "Topic :: Documentation :: Sphinx",
 ]
-build-backend = "setuptools.build_meta"
+homepage = "https://github.com/mirrorrim/aioarango"
+repository = "https://github.com/mirrorrim/aioarango"
+packages = [
+    { include = "aioarango"}
+]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+httpx = "^0.18.2"
+PyJWT = "^2.1.0"
+requests-toolbelt = "^0.9.1"
+
+[tool.poetry.dev-dependencies]
+black = "^21.6b0"
+flake8 = "^3.9.2"
+ipython = "^7.25.0"
+isort = "^5.9.1"
+mock = "^4.0.3"
+pytest = "^6.2.4"
+pytest-asyncio = "^0.15.1"
+pytest-cov = "^2.12.1"
+Sphinx = "^4.0.2"
+sphinx-rtd-theme = "^0.5.2"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
 
 [tool.coverage.run]
 omit = [
@@ -20,6 +56,3 @@ profile = "black"
 addopts = "-s -vv -p no:warnings"
 minversion = "6.0"
 testpaths = ["tests"]
-
-[tool.setuptools_scm]
-write_to = "arango/version.py"

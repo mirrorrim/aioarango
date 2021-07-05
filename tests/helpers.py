@@ -5,8 +5,8 @@ from uuid import uuid4
 import jwt
 import pytest
 
-from arango.cursor import Cursor
-from arango.exceptions import AsyncExecuteError, BatchExecuteError, TransactionInitError
+from aioarango.cursor import Cursor
+from aioarango.exceptions import AsyncExecuteError, BatchExecuteError, TransactionInitError
 
 
 def generate_db_name():
@@ -150,15 +150,15 @@ def clean_doc(obj):
         }
 
 
-def empty_collection(collection):
+async def empty_collection(collection):
     """Empty all the documents in the collection.
 
     :param collection: Collection name
-    :type collection: arango.collection.StandardCollection |
-        arango.collection.VertexCollection | arango.collection.EdgeCollection
+    :type collection: aioarango.collection.StandardCollection |
+        aioarango.collection.VertexCollection | aioarango.collection.EdgeCollection
     """
-    for doc_id in collection.ids():
-        collection.delete(doc_id, sync=True)
+    async for doc_id in (await collection.ids()):
+        await collection.delete(doc_id, sync=True)
 
 
 def extract(key, items):

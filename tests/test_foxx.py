@@ -3,7 +3,8 @@ import os
 
 import pytest
 
-from arango.exceptions import (
+from aioarango.database import StandardDatabase
+from aioarango.exceptions import (
     FoxxCommitError,
     FoxxConfigGetError,
     FoxxConfigReplaceError,
@@ -26,19 +27,21 @@ from arango.exceptions import (
     FoxxSwaggerGetError,
     FoxxTestRunError,
 )
-from arango.foxx import Foxx
+from aioarango.foxx import Foxx
 from tests.helpers import assert_raises, extract, generate_service_mount
+
+pytestmark = pytest.mark.asyncio
 
 service_file = "/tmp/service.zip"
 service_name = "test"
 
 
-def test_foxx_attributes(db):
+def test_foxx_attributes(db: StandardDatabase):
     assert isinstance(db.foxx, Foxx)
     assert repr(db.foxx) == f"<Foxx in {db.name}>"
 
 
-def test_foxx_service_management_json(db, bad_db, cluster):
+async def test_foxx_service_management_json(db: StandardDatabase, bad_db: StandardDatabase, cluster):
     if cluster:
         pytest.skip("Not tested in a cluster setup")
 
@@ -46,7 +49,7 @@ def test_foxx_service_management_json(db, bad_db, cluster):
     missing_mount = generate_service_mount()
 
     # Test list services
-    for service in db.foxx.services():
+    for service in await db.foxx.services():
         assert "development" in service
         assert "legacy" in service
         assert "mount" in service
@@ -56,11 +59,11 @@ def test_foxx_service_management_json(db, bad_db, cluster):
 
     # Test list services with bad database
     with assert_raises(FoxxServiceListError) as err:
-        bad_db.foxx.services()
+        await bad_db.foxx.services()
     assert err.value.error_code in {11, 1228}
 
     # Test create service
-    service = db.foxx.create_service(
+    service = await db.foxx.create_service(
         mount=service_mount,
         source=service_file,
         config={},
@@ -78,11 +81,11 @@ def test_foxx_service_management_json(db, bad_db, cluster):
 
     # Test create duplicate service
     with assert_raises(FoxxServiceCreateError) as err:
-        db.foxx.create_service(service_mount, "service.zip")
+        await db.foxx.create_service(service_mount, "service.zip")
     assert err.value.error_code == 3011
 
     # Test get service
-    service = db.foxx.service(service_mount)
+    service = await db.foxx.service(service_mount)
     assert service["mount"] == service_mount
     assert service["name"] == service_name
     assert service["development"] is True
@@ -95,11 +98,11 @@ def test_foxx_service_management_json(db, bad_db, cluster):
 
     # Test get missing service
     with assert_raises(FoxxServiceGetError) as err:
-        db.foxx.service(missing_mount)
+        await db.foxx.service(missing_mount)
     assert err.value.error_code == 3009
 
     # Test update service
-    service = db.foxx.update_service(
+    service = await db.foxx.update_service(
         mount=service_mount,
         source=service_file,
         config={},
@@ -115,11 +118,11 @@ def test_foxx_service_management_json(db, bad_db, cluster):
 
     # Test update missing service
     with assert_raises(FoxxServiceUpdateError) as err:
-        db.foxx.update_service(missing_mount, "service.zip")
+        await db.foxx.update_service(missing_mount, "service.zip")
     assert err.value.error_code == 3009
 
     # Test replace service
-    service = db.foxx.replace_service(
+    service = await db.foxx.replace_service(
         mount=service_mount,
         source=service_file,
         config={},
@@ -135,19 +138,19 @@ def test_foxx_service_management_json(db, bad_db, cluster):
 
     # Test replace missing service
     with assert_raises(FoxxServiceReplaceError) as err:
-        db.foxx.replace_service(missing_mount, "service.zip")
+        await db.foxx.replace_service(missing_mount, "service.zip")
     assert err.value.error_code == 3009
 
-    assert db.foxx.delete_service(service_mount, teardown=False) is True
-    assert service_mount not in extract("mount", db.foxx.services())
+    assert await db.foxx.delete_service(service_mount, teardown=False) is True
+    assert service_mount not in extract("mount", await db.foxx.services())
 
     # Test delete missing service
     with assert_raises(FoxxServiceDeleteError) as err:
-        db.foxx.delete_service(missing_mount, teardown=False)
+        await db.foxx.delete_service(missing_mount, teardown=False)
     assert err.value.error_code == 3009
 
 
-def test_foxx_service_management_file(db, cluster):
+async def test_foxx_service_management_file(db: StandardDatabase, cluster):
     if cluster:
         pytest.skip("Not tested in a cluster setup")
 
@@ -159,10 +162,10 @@ def test_foxx_service_management_file(db, cluster):
 
     # Test create service by file with wrong extension
     with assert_raises(ValueError):
-        db.foxx.create_service_with_file(service_mount, bad_path)
+        await db.foxx.create_service_with_file(service_mount, bad_path)
 
     # Test create service by file
-    service = db.foxx.create_service_with_file(
+    service = await db.foxx.create_service_with_file(
         mount=service_mount,
         filename=path,
         development=True,
@@ -180,15 +183,15 @@ def test_foxx_service_management_file(db, cluster):
 
     # Test create duplicate service
     with assert_raises(FoxxServiceCreateError) as err:
-        db.foxx.create_service_with_file(service_mount, path)
+        await db.foxx.create_service_with_file(service_mount, path)
     assert err.value.error_code == 3011
 
     # Update config and dependencies
-    assert db.foxx.update_config(service_mount, {}) == {"values": {}}
-    assert db.foxx.update_dependencies(service_mount, {}) == {"values": {}}
+    assert await db.foxx.update_config(service_mount, {}) == {"values": {}}
+    assert await db.foxx.update_dependencies(service_mount, {}) == {"values": {}}
 
     # Test update service by file
-    service = db.foxx.update_service_with_file(
+    service = await db.foxx.update_service_with_file(
         mount=service_mount,
         filename=path,
         teardown=False,
@@ -206,11 +209,11 @@ def test_foxx_service_management_file(db, cluster):
 
     # Test update missing service
     with assert_raises(FoxxServiceUpdateError) as err:
-        db.foxx.update_service_with_file(missing_mount, path)
+        await db.foxx.update_service_with_file(missing_mount, path)
     assert err.value.error_code == 3009
 
     # Test replace service by file
-    service = db.foxx.replace_service_with_file(
+    service = await db.foxx.replace_service_with_file(
         mount=service_mount,
         filename=path,
         teardown=True,
@@ -228,14 +231,14 @@ def test_foxx_service_management_file(db, cluster):
 
     # Test replace missing service
     with assert_raises(FoxxServiceReplaceError) as err:
-        db.foxx.replace_service_with_file(missing_mount, path)
+        await db.foxx.replace_service_with_file(missing_mount, path)
     assert err.value.error_code == 3009
 
-    assert db.foxx.delete_service(service_mount, teardown=False) is True
-    assert service_mount not in extract("mount", db.foxx.services())
+    assert await db.foxx.delete_service(service_mount, teardown=False) is True
+    assert service_mount not in extract("mount", await db.foxx.services())
 
 
-def test_foxx_config_management(db, cluster):
+async def test_foxx_config_management(db: StandardDatabase, cluster):
     if cluster:
         pytest.skip("Not tested in a cluster setup")
 
@@ -243,38 +246,38 @@ def test_foxx_config_management(db, cluster):
     missing_mount = generate_service_mount()
 
     # Prep the test service
-    db.foxx.create_service(
+    await db.foxx.create_service(
         mount=service_mount,
         source=service_file,
         config={},
     )
 
     # Test get service config
-    assert db.foxx.config(service_mount) == {}
+    assert await db.foxx.config(service_mount) == {}
 
     # Test get missing service config
     with assert_raises(FoxxConfigGetError) as err:
-        db.foxx.config(missing_mount)
+        await db.foxx.config(missing_mount)
     assert err.value.error_code == 3009
 
     # Test update service config
-    assert db.foxx.update_config(service_mount, {}) == {"values": {}}
+    assert await db.foxx.update_config(service_mount, {}) == {"values": {}}
 
     # Test update missing service config
     with assert_raises(FoxxConfigUpdateError) as err:
-        db.foxx.update_config(missing_mount, {})
+        await db.foxx.update_config(missing_mount, {})
     assert err.value.error_code == 3009
 
     # Test replace service config
-    assert db.foxx.replace_config(service_mount, {}) == {"values": {}}
+    assert await db.foxx.replace_config(service_mount, {}) == {"values": {}}
 
     # Test replace missing service config
     with assert_raises(FoxxConfigReplaceError) as err:
-        db.foxx.replace_config(missing_mount, {})
+        await db.foxx.replace_config(missing_mount, {})
     assert err.value.error_code == 3009
 
 
-def test_foxx_dependency_management(db, cluster):
+async def test_foxx_dependency_management(db: StandardDatabase, cluster):
     if cluster:
         pytest.skip("Not tested in a cluster setup")
 
@@ -282,34 +285,34 @@ def test_foxx_dependency_management(db, cluster):
     missing_mount = generate_service_mount()
 
     # Prep the test service
-    db.foxx.create_service(mount=service_mount, source=service_file, dependencies={})
+    await db.foxx.create_service(mount=service_mount, source=service_file, dependencies={})
 
     # Test get service dependencies
-    assert db.foxx.dependencies(service_mount) == {}
+    assert await db.foxx.dependencies(service_mount) == {}
 
     # Test get missing service dependencies
     with assert_raises(FoxxDependencyGetError) as err:
-        db.foxx.dependencies(missing_mount)
+        await db.foxx.dependencies(missing_mount)
     assert err.value.error_code == 3009
 
     # Test update service dependencies
-    assert db.foxx.update_dependencies(service_mount, {}) == {"values": {}}
+    assert await db.foxx.update_dependencies(service_mount, {}) == {"values": {}}
 
     # Test update missing service dependencies
     with assert_raises(FoxxDependencyUpdateError) as err:
-        db.foxx.update_dependencies(missing_mount, {})
+        await db.foxx.update_dependencies(missing_mount, {})
     assert err.value.error_code == 3009
 
     # Test replace service dependencies
-    assert db.foxx.replace_dependencies(service_mount, {}) == {"values": {}}
+    assert await db.foxx.replace_dependencies(service_mount, {}) == {"values": {}}
 
     # Test replace missing service dependencies
     with assert_raises(FoxxDependencyReplaceError) as err:
-        db.foxx.replace_dependencies(missing_mount, {})
+        await db.foxx.replace_dependencies(missing_mount, {})
     assert err.value.error_code == 3009
 
 
-def test_foxx_development_toggle(db, cluster):
+async def test_foxx_development_toggle(db: StandardDatabase, cluster):
     if cluster:
         pytest.skip("Not tested in a cluster setup")
 
@@ -317,36 +320,36 @@ def test_foxx_development_toggle(db, cluster):
     missing_mount = generate_service_mount()
 
     # Prep the test service
-    db.foxx.create_service(
+    await db.foxx.create_service(
         mount=service_mount,
         source=service_file,
         development=False,
     )
 
     # Test enable development mode
-    service = db.foxx.enable_development(service_mount)
+    service = await db.foxx.enable_development(service_mount)
     assert service["mount"] == service_mount
     assert service["name"] == service_name
     assert service["development"] is True
 
     # Test enable development mode for missing service
     with assert_raises(FoxxDevModeEnableError) as err:
-        db.foxx.enable_development(missing_mount)
+        await db.foxx.enable_development(missing_mount)
     assert err.value.error_code == 3009
 
     # Test disable development mode
-    service = db.foxx.disable_development(service_mount)
+    service = await db.foxx.disable_development(service_mount)
     assert service["mount"] == service_mount
     assert service["name"] == service_name
     assert service["development"] is False
 
     # Test disable development mode for missing service
     with assert_raises(FoxxDevModeDisableError) as err:
-        db.foxx.disable_development(missing_mount)
+        await db.foxx.disable_development(missing_mount)
     assert err.value.error_code == 3009
 
 
-def test_foxx_misc_functions(db, bad_db, cluster):
+async def test_foxx_misc_functions(db: StandardDatabase, bad_db: StandardDatabase, cluster):
     if cluster:
         pytest.skip("Not tested in a cluster setup")
 
@@ -354,21 +357,21 @@ def test_foxx_misc_functions(db, bad_db, cluster):
     missing_mount = generate_service_mount()
 
     # Prep the test service
-    db.foxx.create_service(
+    await db.foxx.create_service(
         mount=service_mount,
         source=service_file,
     )
 
     # Test get service readme
-    assert "Apache 2" in db.foxx.readme(service_mount)
+    assert "Apache 2" in await db.foxx.readme(service_mount)
 
     # Test get missing service readme
     with assert_raises(FoxxReadmeGetError) as err:
-        db.foxx.readme(missing_mount)
+        await db.foxx.readme(missing_mount)
     assert err.value.error_code == 3009
 
     # Test get service swagger
-    swagger = db.foxx.swagger(service_mount)
+    swagger = await db.foxx.swagger(service_mount)
     assert "swagger" in swagger
     assert "paths" in swagger
     assert "info" in swagger
@@ -376,47 +379,47 @@ def test_foxx_misc_functions(db, bad_db, cluster):
 
     # Test get missing service swagger
     with assert_raises(FoxxSwaggerGetError) as err:
-        db.foxx.swagger(missing_mount)
+        await db.foxx.swagger(missing_mount)
     assert err.value.error_code == 3009
 
     # Test download service
-    assert isinstance(db.foxx.download(service_mount), str)
+    assert isinstance(await db.foxx.download(service_mount), str)
 
     # Test download missing service
     with assert_raises(FoxxDownloadError) as err:
-        db.foxx.download(missing_mount)
+        await db.foxx.download(missing_mount)
     assert err.value.error_code == 3009
 
     # Test commit service state
-    assert db.foxx.commit(replace=True) is True
-    assert db.foxx.commit(replace=False) is True
+    assert await db.foxx.commit(replace=True) is True
+    assert await db.foxx.commit(replace=False) is True
 
     # Test commit service state with bad database
     with assert_raises(FoxxCommitError) as err:
-        bad_db.foxx.commit(replace=True)
+        await bad_db.foxx.commit(replace=True)
     assert err.value.error_code in {11, 1228}
 
     # Test list service scripts
-    scripts = db.foxx.scripts(service_mount)
+    scripts = await db.foxx.scripts(service_mount)
     assert "setup" in scripts
     assert "teardown" in scripts
 
     # Test list missing service scripts
     with assert_raises(FoxxScriptListError) as err:
-        db.foxx.scripts(missing_mount)
+        await db.foxx.scripts(missing_mount)
     assert err.value.error_code == 3009
 
     # Test run service script
-    assert db.foxx.run_script(service_mount, "setup", []) == {}
-    assert db.foxx.run_script(service_mount, "teardown", []) == {}
+    assert await db.foxx.run_script(service_mount, "setup", []) == {}
+    assert await db.foxx.run_script(service_mount, "teardown", []) == {}
 
     # Test run missing service script
     with assert_raises(FoxxScriptRunError) as err:
-        db.foxx.run_script(service_mount, "invalid", ())
+        await db.foxx.run_script(service_mount, "invalid", ())
     assert err.value.error_code == 3016
 
     # Test run tests on service
-    result_str = db.foxx.run_tests(
+    result_str = await db.foxx.run_tests(
         mount=service_mount, reporter="suite", idiomatic=True, name_filter="science"
     )
     result_json = json.loads(result_str)
@@ -424,7 +427,7 @@ def test_foxx_misc_functions(db, bad_db, cluster):
     assert "tests" in result_json
     assert "suites" in result_json
 
-    result_str = db.foxx.run_tests(
+    result_str = await db.foxx.run_tests(
         mount=service_mount, reporter="stream", output_format="x-ldjson"
     )
     for result_part in result_str.split("\r\n"):
@@ -433,13 +436,13 @@ def test_foxx_misc_functions(db, bad_db, cluster):
         assert result_part.startswith("[")
         assert result_part.endswith("]")
 
-    result_str = db.foxx.run_tests(
+    result_str = await db.foxx.run_tests(
         mount=service_mount, reporter="stream", output_format="text"
     )
     assert result_str.startswith("[")
     assert result_str.endswith("]") or result_str.endswith("\r\n")
 
-    result_str = db.foxx.run_tests(
+    result_str = await db.foxx.run_tests(
         mount=service_mount, reporter="xunit", output_format="xml"
     )
     assert result_str.startswith("[")
@@ -447,5 +450,5 @@ def test_foxx_misc_functions(db, bad_db, cluster):
 
     # Test run tests on missing service
     with assert_raises(FoxxTestRunError) as err:
-        db.foxx.run_tests(missing_mount)
+        await db.foxx.run_tests(missing_mount)
     assert err.value.error_code == 3009

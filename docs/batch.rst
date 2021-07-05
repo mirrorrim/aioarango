@@ -9,13 +9,13 @@ results can be retrieved later from :ref:`BatchJob` objects.
 
 .. code-block:: python
 
-    from arango import ArangoClient, AQLQueryExecuteError
+    from aioarango import ArangoClient, AQLQueryExecuteError
 
     # Initialize the ArangoDB client.
     client = ArangoClient()
 
     # Connect to "test" database as root user.
-    db = client.db('test', username='root', password='passwd')
+    db = await client.db('test', username='root', password='passwd')
 
     # Get the API wrapper for "students" collection.
     students = db.collection('students')
@@ -24,7 +24,7 @@ results can be retrieved later from :ref:`BatchJob` objects.
     # BatchDatabase, a database-level API wrapper tailored specifically for
     # batch execution. The batch is automatically committed when exiting the
     # context. The BatchDatabase wrapper cannot be reused after commit.
-    with db.begin_batch_execution(return_result=True) as batch_db:
+    async with db.begin_batch_execution(return_result=True) as batch_db:
 
         # Child wrappers are also tailored for batch execution.
         batch_aql = batch_db.aql
@@ -36,14 +36,14 @@ results can be retrieved later from :ref:`BatchJob` objects.
         assert batch_col.context == 'batch'
 
         # BatchJob objects are returned instead of results.
-        job1 = batch_col.insert({'_key': 'Kris'})
-        job2 = batch_col.insert({'_key': 'Rita'})
-        job3 = batch_aql.execute('RETURN 100000')
-        job4 = batch_aql.execute('INVALID QUERY')  # Fails due to syntax error.
+        job1 = await batch_col.insert({'_key': 'Kris'})
+        job2 = await batch_col.insert({'_key': 'Rita'})
+        job3 = await batch_aql.execute('RETURN 100000')
+        job4 = await batch_aql.execute('INVALID QUERY')  # Fails due to syntax error.
 
     # Upon exiting context, batch is automatically committed.
-    assert 'Kris' in students
-    assert 'Rita' in students
+    assert await students.has('Kris', check_rev=False)
+    assert await students.has('Rita', check_rev=False)
 
     # Retrieve the status of each batch job.
     for job in batch_db.queued_jobs():
@@ -73,11 +73,11 @@ results can be retrieved later from :ref:`BatchJob` objects.
     # Batch execution can be initiated without using a context manager.
     # If return_result parameter is set to False, no jobs are returned.
     batch_db = db.begin_batch_execution(return_result=False)
-    batch_db.collection('students').insert({'_key': 'Jake'})
-    batch_db.collection('students').insert({'_key': 'Jill'})
+    await batch_db.collection('students').insert({'_key': 'Jake'})
+    await batch_db.collection('students').insert({'_key': 'Jill'})
 
     # The commit must be called explicitly.
-    batch_db.commit()
+    await batch_db.commit()
     assert 'Jake' in students
     assert 'Jill' in students
 

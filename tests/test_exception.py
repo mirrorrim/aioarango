@@ -2,21 +2,25 @@ import json
 
 import pytest
 
-from arango.exceptions import (
+from aioarango import ArangoClient
+from aioarango.collection import StandardCollection
+from aioarango.exceptions import (
     ArangoClientError,
     ArangoServerError,
     DocumentInsertError,
     DocumentParseError,
 )
-from arango.request import Request
-from arango.response import Response
+from aioarango.request import Request
+from aioarango.response import Response
+
+pytestmark = pytest.mark.asyncio
 
 
-def test_server_error(client, col, docs):
+async def test_server_error(client: ArangoClient, col: StandardCollection, docs):
     document = docs[0]
     with pytest.raises(DocumentInsertError) as err:
-        col.insert(document, return_new=False)
-        col.insert(document, return_new=False)  # duplicate key error
+        await col.insert(document, return_new=False)
+        await col.insert(document, return_new=False)  # duplicate key error
     exc = err.value
 
     assert isinstance(exc, ArangoServerError)
@@ -56,9 +60,9 @@ def test_server_error(client, col, docs):
     assert req.endpoint.startswith("/_api/document/" + col.name)
 
 
-def test_client_error(col):
+async def test_client_error(col: StandardCollection):
     with pytest.raises(DocumentParseError) as err:
-        col.get({"_id": "invalid"})  # malformed document
+        await col.get({"_id": "invalid"})  # malformed document
     exc = err.value
 
     assert isinstance(exc, ArangoClientError)

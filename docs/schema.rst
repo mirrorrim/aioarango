@@ -9,16 +9,16 @@ parameter.
 
 .. testcode::
 
-    from arango import ArangoClient
+    from aioarango import ArangoClient
 
     # Initialize the ArangoDB client.
     client = ArangoClient()
 
     # Connect to "test" database as root user.
-    db = client.db('test', username='root', password='passwd')
+    db = await client.db('test', username='root', password='passwd')
 
-    if db.has_collection('employees'):
-        db.delete_collection('employees')
+    if await db.has_collection('employees'):
+        await db.delete_collection('employees')
 
     # Create a new collection named "employees" with custom schema.
     my_schema = {
@@ -33,10 +33,10 @@ parameter.
         'level': 'moderate',
         'message': 'Schema Validation Failed.'
     }
-    employees = db.create_collection(name='employees', schema=my_schema)
+    await employees = db.create_collection(name='employees', schema=my_schema)
 
     # Modify the schema.
-    employees.configure(schema=my_schema)
+    await employees.configure(schema=my_schema)
 
     # Remove the schema.
-    employees.configure(schema={})
+    await employees.configure(schema={})

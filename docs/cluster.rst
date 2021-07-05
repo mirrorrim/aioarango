@@ -1,7 +1,7 @@
 Clusters
 --------
 
-Python-arango provides APIs for working with ArangoDB clusters. For more
+aioarango provides APIs for working with ArangoDB clusters. For more
 information on the design and architecture, refer to `ArangoDB manual`_.
 
 .. _ArangoDB manual: https://docs.arangodb.com
@@ -16,7 +16,7 @@ host strings or a comma-separated string during client initialization.
 
 .. testcode::
 
-    from arango import ArangoClient
+    from aioarango import ArangoClient
 
     # Single host
     client = ArangoClient(hosts='http://localhost:8529')
@@ -27,11 +27,11 @@ host strings or a comma-separated string during client initialization.
     # Multiple hosts (option 2: comma-separated string)
     client = ArangoClient(hosts='http://host1:8529,http://host2:8529')
 
-By default, a `requests.Session`_ instance is created per coordinator. HTTP
+By default, a `httpx.AsyncClient`_ instance is created per coordinator. HTTP
 requests to a host are sent using only its corresponding session. For more
 information on how to override this behaviour, see :doc:`http`.
 
-.. _requests.Session: http://docs.python-requests.org/en/master/user/advanced/#session-objects
+.. _httpx.AsyncClient: https://www.python-httpx.org/advanced/#client-instances
 
 Load-Balancing Strategies
 =========================
@@ -43,7 +43,7 @@ There are two load-balancing strategies available: "roundrobin" and "random"
 
 .. testcode::
 
-    from arango import ArangoClient
+    from aioarango import ArangoClient
 
     hosts = ['http://host1:8529', 'http://host2:8529']
 
@@ -56,39 +56,39 @@ There are two load-balancing strategies available: "roundrobin" and "random"
 Administration
 ==============
 
-Below is an example on how to manage clusters using python-arango.
+Below is an example on how to manage clusters using aioarango.
 
 .. code-block:: python
 
-    from arango import ArangoClient
+    from aioarango import ArangoClient
 
     # Initialize the ArangoDB client.
     client = ArangoClient()
 
     # Connect to "_system" database as root user.
-    sys_db = client.db('_system', username='root', password='passwd')
+    sys_db = await client.db('_system', username='root', password='passwd')
 
     # Get the Cluster API wrapper.
     cluster = sys_db.cluster
 
     # Get this server's ID.
-    cluster.server_id()
+    await cluster.server_id()
 
     # Get this server's role.
-    cluster.server_role()
+    await cluster.server_role()
 
     # Get the cluster health.
-    cluster.health()
+    await cluster.health()
 
     # Get cluster server details.
-    cluster.server_count()
-    server_id = cluster.server_id()
-    cluster.server_engine(server_id)
-    cluster.server_version(server_id)
-    cluster.server_statistics(server_id)
+    await cluster.server_count()
+    server_id = await cluster.server_id()
+    await cluster.server_engine(server_id)
+    await cluster.server_version(server_id)
+    await cluster.server_statistics(server_id)
 
     # Toggle maintenance mode (allowed values are "on" and "off").
-    cluster.toggle_maintenance_mode('on')
-    cluster.toggle_maintenance_mode('off')
+    await cluster.toggle_maintenance_mode('on')
+    await cluster.toggle_maintenance_mode('off')
 
 See :ref:`ArangoClient` and :ref:`Cluster` for API specification.

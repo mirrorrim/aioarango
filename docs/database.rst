@@ -12,30 +12,30 @@ information.
 
 .. testcode::
 
-    from arango import ArangoClient
+    from aioarango import ArangoClient
 
     # Initialize the ArangoDB client.
     client = ArangoClient()
 
     # Connect to "_system" database as root user.
     # This returns an API wrapper for "_system" database.
-    sys_db = client.db('_system', username='root', password='passwd')
+    sys_db = await client.db('_system', username='root', password='passwd')
 
     # List all databases.
-    sys_db.databases()
+    await sys_db.databases()
 
     # Create a new database named "test" if it does not exist.
     # Only root user has access to it at time of its creation.
-    if not sys_db.has_database('test'):
-        sys_db.create_database('test')
+    if not await sys_db.has_database('test'):
+        await sys_db.create_database('test')
 
     # Delete the database.
-    sys_db.delete_database('test')
+    await sys_db.delete_database('test')
 
     # Create a new database named "test" along with a new set of users.
     # Only "jane", "john", "jake" and root user have access to it.
-    if not sys_db.has_database('test'):
-        sys_db.create_database(
+    if not await sys_db.has_database('test'):
+        await sys_db.create_database(
             name='test',
             users=[
                 {'username': 'jane', 'password': 'foo', 'active': True},
@@ -45,22 +45,22 @@ information.
         )
 
     # Connect to the new "test" database as user "jane".
-    db = client.db('test', username='jane', password='foo')
+    db = await client.db('test', username='jane', password='foo')
 
     # Make sure that user "jane" has read and write permissions.
-    sys_db.update_permission(username='jane', permission='rw', database='test')
+    await sys_db.update_permission(username='jane', permission='rw', database='test')
 
     # Retrieve various database and server information.
     db.name
     db.username
-    db.version()
-    db.status()
-    db.details()
-    db.collections()
-    db.graphs()
-    db.engine()
+    await db.version()
+    await db.status()
+    await db.details()
+    await db.collections()
+    await db.graphs()
+    await db.engine()
 
     # Delete the database. Note that the new users will remain.
-    sys_db.delete_database('test')
+    await sys_db.delete_database('test')
 
 See :ref:`ArangoClient` and :ref:`StandardDatabase` for API specification.

@@ -1,6 +1,8 @@
 import pytest
 
-from arango.exceptions import (
+from aioarango import ArangoClient
+from aioarango.database import StandardDatabase
+from aioarango.exceptions import (
     DatabasePropertiesError,
     UserCreateError,
     UserDeleteError,
@@ -17,14 +19,16 @@ from tests.helpers import (
     generate_username,
 )
 
+pytestmark = pytest.mark.asyncio
 
-def test_user_management(sys_db, bad_db):
+
+async def test_user_management(sys_db: StandardDatabase, bad_db: StandardDatabase):
     # Test create user
     username = generate_username()
     password = generate_string()
-    assert not sys_db.has_user(username)
+    assert not await sys_db.has_user(username)
 
-    new_user = sys_db.create_user(
+    new_user = await sys_db.create_user(
         username=username,
         password=password,
         active=True,
@@ -33,45 +37,45 @@ def test_user_management(sys_db, bad_db):
     assert new_user["username"] == username
     assert new_user["active"] is True
     assert new_user["extra"] == {"foo": "bar"}
-    assert sys_db.has_user(username)
+    assert await sys_db.has_user(username)
 
     # Test create duplicate user
     with assert_raises(UserCreateError) as err:
-        sys_db.create_user(username=username, password=password)
+        await sys_db.create_user(username=username, password=password)
     assert err.value.error_code == 1702
 
     # Test list users
-    for user in sys_db.users():
+    for user in await sys_db.users():
         assert isinstance(user["username"], str)
         assert isinstance(user["active"], bool)
         assert isinstance(user["extra"], dict)
-    assert sys_db.user(username) == new_user
+    assert await sys_db.user(username) == new_user
 
     # Test list users with bad database
     with assert_raises(UserListError) as err:
-        bad_db.users()
+        await bad_db.users()
     assert err.value.error_code in {11, 1228}
 
     # Test has user with bad database
     with assert_raises(UserListError) as err:
-        bad_db.has_user(username)
+        await bad_db.has_user(username)
     assert err.value.error_code in {11, 1228}
 
     # Test get user
-    users = sys_db.users()
+    users = await sys_db.users()
     for user in users:
         assert "active" in user
         assert "extra" in user
         assert "username" in user
-    assert username in extract("username", sys_db.users())
+    assert username in extract("username", await sys_db.users())
 
     # Test get missing user
     with assert_raises(UserGetError) as err:
-        sys_db.user(generate_username())
+        await sys_db.user(generate_username())
     assert err.value.error_code == 1703
 
     # Update existing user
-    new_user = sys_db.update_user(
+    new_user = await sys_db.update_user(
         username=username,
         password=password,
         active=False,
@@ -80,15 +84,17 @@ def test_user_management(sys_db, bad_db):
     assert new_user["username"] == username
     assert new_user["active"] is False
     assert new_user["extra"] == {"bar": "baz"}
-    assert sys_db.user(username) == new_user
+    assert await sys_db.user(username) == new_user
 
     # Update missing user
     with assert_raises(UserUpdateError) as err:
-        sys_db.update_user(username=generate_username(), password=generate_string())
+        await sys_db.update_user(
+            username=generate_username(), password=generate_string()
+        )
     assert err.value.error_code == 1703
 
     # Replace existing user
-    new_user = sys_db.replace_user(
+    new_user = await sys_db.replace_user(
         username=username,
         password=password,
         active=False,
@@ -97,24 +103,28 @@ def test_user_management(sys_db, bad_db):
     assert new_user["username"] == username
     assert new_user["active"] is False
     assert new_user["extra"] == {"baz": "qux"}
-    assert sys_db.user(username) == new_user
+    assert await sys_db.user(username) == new_user
 
     # Replace missing user
     with assert_raises(UserReplaceError) as err:
-        sys_db.replace_user(username=generate_username(), password=generate_string())
+        await sys_db.replace_user(
+            username=generate_username(), password=generate_string()
+        )
     assert err.value.error_code == 1703
 
     # Delete an existing user
-    assert sys_db.delete_user(username) is True
+    assert await sys_db.delete_user(username) is True
 
     # Delete a missing user
     with assert_raises(UserDeleteError) as err:
-        sys_db.delete_user(username, ignore_missing=False)
+        await sys_db.delete_user(username, ignore_missing=False)
     assert err.value.error_code == 1703
-    assert sys_db.delete_user(username, ignore_missing=True) is False
+    assert await sys_db.delete_user(username, ignore_missing=True) is False
 
 
-def test_user_change_password(client, sys_db, cluster):
+async def test_user_change_password(
+    client: ArangoClient, sys_db: StandardDatabase, cluster
+):
     if cluster:
         pytest.skip("Not tested in a cluster setup")
 
@@ -122,34 +132,36 @@ def test_user_change_password(client, sys_db, cluster):
     password1 = generate_string()
     password2 = generate_string()
 
-    sys_db.create_user(username, password1)
-    sys_db.update_permission(username, "rw", sys_db.name)
+    await sys_db.create_user(username, password1)
+    await sys_db.update_permission(username, "rw", sys_db.name)
 
-    db1 = client.db(sys_db.name, username, password1)
-    db2 = client.db(sys_db.name, username, password2)
+    db1 = await client.db(sys_db.name, username, password1)
+    db2 = await client.db(sys_db.name, username, password2)
 
     # Check authentication
-    assert isinstance(db1.properties(), dict)
+    assert isinstance(await db1.properties(), dict)
     with assert_raises(DatabasePropertiesError) as err:
-        db2.properties()
+        await db2.properties()
     assert err.value.http_code == 401
 
     # Update the user password and check again
-    sys_db.update_user(username, password2)
-    assert isinstance(db2.properties(), dict)
+    await sys_db.update_user(username, password2)
+    assert isinstance(await db2.properties(), dict)
     with assert_raises(DatabasePropertiesError) as err:
-        db1.properties()
+        await db1.properties()
     assert err.value.http_code == 401
 
     # Replace the user password back and check again
-    sys_db.update_user(username, password1)
-    assert isinstance(db1.properties(), dict)
+    await sys_db.update_user(username, password1)
+    assert isinstance(await db1.properties(), dict)
     with assert_raises(DatabasePropertiesError) as err:
-        db2.properties()
+        await db2.properties()
     assert err.value.http_code == 401
 
 
-def test_user_create_with_new_database(client, sys_db, cluster):
+async def test_user_create_with_new_database(
+    client: ArangoClient, sys_db: StandardDatabase, cluster
+):
     if cluster:
         pytest.skip("Not tested in a cluster setup")
 
@@ -163,7 +175,7 @@ def test_user_create_with_new_database(client, sys_db, cluster):
     password2 = generate_string()
     password3 = generate_string()
 
-    result = sys_db.create_database(
+    result = await sys_db.create_database(
         name=db_name,
         users=[
             {"username": username1, "password": password1, "active": True},
@@ -173,24 +185,24 @@ def test_user_create_with_new_database(client, sys_db, cluster):
     )
     assert result is True
 
-    sys_db.update_permission(username1, permission="rw", database=db_name)
-    sys_db.update_permission(username2, permission="rw", database=db_name)
-    sys_db.update_permission(username3, permission="rw", database=db_name)
+    await sys_db.update_permission(username1, permission="rw", database=db_name)
+    await sys_db.update_permission(username2, permission="rw", database=db_name)
+    await sys_db.update_permission(username3, permission="rw", database=db_name)
 
     # Test if the users were created properly
-    usernames = extract("username", sys_db.users())
+    usernames = extract("username", await sys_db.users())
     assert all(u in usernames for u in [username1, username2, username3])
 
     # Test if the first user has access to the database
-    db = client.db(db_name, username1, password1)
-    db.properties()
+    db = await client.db(db_name, username1, password1)
+    await db.properties()
 
     # Test if the second user also has access to the database
-    db = client.db(db_name, username2, password2)
-    db.properties()
+    db = await client.db(db_name, username2, password2)
+    await db.properties()
 
     # Test if the third user has access to the database (should not)
-    db = client.db(db_name, username3, password3)
+    db = await client.db(db_name, username3, password3)
     with assert_raises(DatabasePropertiesError) as err:
-        db.properties()
+        await db.properties()
     assert err.value.http_code == 401

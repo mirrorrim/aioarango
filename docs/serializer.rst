@@ -10,7 +10,7 @@ initialization. They must be callables that take a single argument.
 
     import json
 
-    from arango import ArangoClient
+    from aioarango import ArangoClient
 
     # Initialize the ArangoDB client with custom serializer and deserializer.
     client = ArangoClient(

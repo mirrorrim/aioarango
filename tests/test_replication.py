@@ -1,13 +1,15 @@
 import pytest
 
-from arango.errno import (
+from aioarango.collection import StandardCollection
+from aioarango.database import StandardDatabase
+from aioarango.errno import (
     CURSOR_NOT_FOUND,
     DATABASE_NOT_FOUND,
     FORBIDDEN,
     HTTP_NOT_FOUND,
     HTTP_UNAUTHORIZED,
 )
-from arango.exceptions import (
+from aioarango.exceptions import (
     ReplicationApplierConfigError,
     ReplicationApplierConfigSetError,
     ReplicationApplierStartError,
@@ -27,48 +29,50 @@ from arango.exceptions import (
 )
 from tests.helpers import assert_raises
 
+pytestmark = pytest.mark.asyncio
 
-def test_replication_dump_methods(db, bad_db, col, docs, cluster):
+
+async def test_replication_dump_methods(db: StandardDatabase, bad_db: StandardDatabase, col: StandardCollection, docs, cluster):
     if cluster:
         pytest.skip("Not tested in a cluster setup")
 
-    result = db.replication.create_dump_batch(ttl=1000)
+    result = await db.replication.create_dump_batch(ttl=1000)
     assert "id" in result and "last_tick" in result
     batch_id = result["id"]
 
     with assert_raises(ReplicationDumpBatchCreateError) as err:
-        bad_db.replication.create_dump_batch(ttl=1000)
+        await bad_db.replication.create_dump_batch(ttl=1000)
     assert err.value.error_code in {FORBIDDEN, DATABASE_NOT_FOUND}
 
-    result = db.replication.dump(
+    result = await db.replication.dump(
         collection=col.name, batch_id=batch_id, chunk_size=0, deserialize=True
     )
     assert "content" in result
     assert "check_more" in result
 
     with assert_raises(ReplicationDumpError) as err:
-        bad_db.replication.dump(collection=col.name, batch_id=batch_id)
+        await bad_db.replication.dump(collection=col.name, batch_id=batch_id)
     assert err.value.error_code == HTTP_UNAUTHORIZED
 
-    assert db.replication.extend_dump_batch(batch_id, ttl=1000) is True
+    assert await db.replication.extend_dump_batch(batch_id, ttl=1000) is True
     with assert_raises(ReplicationDumpBatchExtendError) as err:
-        bad_db.replication.extend_dump_batch(batch_id, ttl=1000)
+        await bad_db.replication.extend_dump_batch(batch_id, ttl=1000)
     assert err.value.error_code == HTTP_UNAUTHORIZED
 
-    assert db.replication.delete_dump_batch(batch_id) is True
+    assert await db.replication.delete_dump_batch(batch_id) is True
     with assert_raises(ReplicationDumpBatchDeleteError) as err:
-        db.replication.delete_dump_batch(batch_id)
+        await db.replication.delete_dump_batch(batch_id)
     assert err.value.error_code in {HTTP_NOT_FOUND, CURSOR_NOT_FOUND}
 
 
-def test_replication_inventory(sys_db, bad_db, cluster):
+async def test_replication_inventory(sys_db: StandardDatabase, bad_db: StandardDatabase, cluster):
     if cluster:
         pytest.skip("Not tested in a cluster setup")
 
-    dump_batch = sys_db.replication.create_dump_batch(ttl=1000)
+    dump_batch = await sys_db.replication.create_dump_batch(ttl=1000)
     dump_batch_id = dump_batch["id"]
 
-    result = sys_db.replication.inventory(
+    result = await sys_db.replication.inventory(
         batch_id=dump_batch_id, include_system=True, all_databases=True
     )
     assert isinstance(result, dict)
@@ -77,7 +81,7 @@ def test_replication_inventory(sys_db, bad_db, cluster):
     assert "state" in result
     assert "tick" in result
 
-    result = sys_db.replication.inventory(
+    result = await sys_db.replication.inventory(
         batch_id=dump_batch_id, include_system=True, all_databases=False
     )
     assert isinstance(result, dict)
@@ -87,71 +91,71 @@ def test_replication_inventory(sys_db, bad_db, cluster):
     assert "tick" in result
 
     with assert_raises(ReplicationInventoryError) as err:
-        bad_db.replication.inventory(dump_batch_id)
+        await bad_db.replication.inventory(dump_batch_id)
     assert err.value.error_code in {FORBIDDEN, DATABASE_NOT_FOUND}
 
-    sys_db.replication.delete_dump_batch(dump_batch_id)
+    await sys_db.replication.delete_dump_batch(dump_batch_id)
 
 
-def test_replication_logger_state(sys_db, bad_db, cluster):
+async def test_replication_logger_state(sys_db: StandardDatabase, bad_db: StandardDatabase, cluster):
     if cluster:
         pytest.skip("Not tested in a cluster setup")
 
-    result = sys_db.replication.logger_state()
+    result = await sys_db.replication.logger_state()
     assert "state" in result
     assert "server" in result
 
     with assert_raises(ReplicationLoggerStateError) as err:
-        bad_db.replication.logger_state()
+        await bad_db.replication.logger_state()
     assert err.value.error_code in {FORBIDDEN, DATABASE_NOT_FOUND}
 
 
-def test_replication_first_tick(sys_db, bad_db, cluster):
+async def test_replication_first_tick(sys_db: StandardDatabase, bad_db: StandardDatabase, cluster):
     if cluster:
         pytest.skip("Not tested in a cluster setup")
 
-    result = sys_db.replication.logger_first_tick()
+    result = await sys_db.replication.logger_first_tick()
     assert isinstance(result, str)
 
     with assert_raises(ReplicationLoggerFirstTickError) as err:
-        bad_db.replication.logger_first_tick()
+        await bad_db.replication.logger_first_tick()
     assert err.value.error_code in {FORBIDDEN, DATABASE_NOT_FOUND}
 
 
-def test_replication_applier(sys_db, bad_db, url, cluster):
+async def test_replication_applier(sys_db: StandardDatabase, bad_db: StandardDatabase, url, cluster):
     if cluster:
         pytest.skip("Not tested in a cluster setup")
 
     # Test replication applier state
-    state = sys_db.replication.applier_state()
+    state = await sys_db.replication.applier_state()
     assert "server" in state
     assert "state" in state
 
     with assert_raises(ReplicationApplierStateError) as err:
-        bad_db.replication.applier_state()
+        await bad_db.replication.applier_state()
     assert err.value.error_code in {FORBIDDEN, DATABASE_NOT_FOUND}
 
     # Test replication get applier config
-    result = sys_db.replication.applier_config()
+    result = await sys_db.replication.applier_config()
     assert "verbose" in result
     assert "incremental" in result
     assert "include_system" in result
 
     with assert_raises(ReplicationApplierConfigError) as err:
-        bad_db.replication.applier_config()
+        await bad_db.replication.applier_config()
     assert err.value.error_code in {FORBIDDEN, DATABASE_NOT_FOUND}
 
     # Test replication stop applier
-    result = sys_db.replication.stop_applier()
+    result = await sys_db.replication.stop_applier()
     assert "server" in result
     assert "state" in result
 
     with assert_raises(ReplicationApplierStopError) as err:
-        bad_db.replication.stop_applier()
+        await bad_db.replication.stop_applier()
     assert err.value.error_code in {FORBIDDEN, DATABASE_NOT_FOUND}
 
     # Test replication set applier config
-    result = sys_db.replication.set_applier_config(
+    result = await sys_db.replication.set_applier_config(
         endpoint=url,
         database="_system",
         username="root",
@@ -196,27 +200,27 @@ def test_replication_applier(sys_db, bad_db, url, cluster):
     assert result["restrict_collections"] == ["students"]
 
     with assert_raises(ReplicationApplierConfigSetError) as err:
-        bad_db.replication.set_applier_config(url)
+        await bad_db.replication.set_applier_config(url)
     assert err.value.error_code in {FORBIDDEN, DATABASE_NOT_FOUND}
 
     # Test replication start applier
-    result = sys_db.replication.start_applier()
+    result = await sys_db.replication.start_applier()
     assert "server" in result
     assert "state" in result
-    sys_db.replication.stop_applier()
+    await sys_db.replication.stop_applier()
 
     with assert_raises(ReplicationApplierStartError) as err:
-        bad_db.replication.start_applier()
+        await bad_db.replication.start_applier()
     assert err.value.error_code in {FORBIDDEN, DATABASE_NOT_FOUND}
 
 
-def test_replication_make_slave(sys_db, bad_db, url, replication):
+async def test_replication_make_slave(sys_db: StandardDatabase, bad_db: StandardDatabase, url, replication):
     if not replication:
         pytest.skip("Only tested for replication")
 
-    sys_db.replication.stop_applier()
+    await sys_db.replication.stop_applier()
 
-    result = sys_db.replication.make_slave(
+    result = await sys_db.replication.make_slave(
         endpoint="tcp://192.168.1.65:8500",
         database="test",
         username="root",
@@ -242,34 +246,34 @@ def test_replication_make_slave(sys_db, bad_db, url, replication):
     assert "database" in result
 
     with assert_raises(ReplicationMakeSlaveError) as err:
-        bad_db.replication.make_slave(endpoint=url)
+        await bad_db.replication.make_slave(endpoint=url)
     assert err.value.error_code in {FORBIDDEN, DATABASE_NOT_FOUND}
 
 
-def test_replication_cluster_inventory(sys_db, bad_db, cluster):
+async def test_replication_cluster_inventory(sys_db: StandardDatabase, bad_db: StandardDatabase, cluster):
     if cluster:
-        result = sys_db.replication.cluster_inventory(include_system=True)
+        result = await sys_db.replication.cluster_inventory(include_system=True)
         assert isinstance(result, dict)
 
     with assert_raises(ReplicationClusterInventoryError) as err:
-        bad_db.replication.cluster_inventory(include_system=True)
+        await bad_db.replication.cluster_inventory(include_system=True)
     assert err.value.error_code in {FORBIDDEN, DATABASE_NOT_FOUND}
 
 
-def test_replication_server_id(sys_db, bad_db):
-    result = sys_db.replication.server_id()
+async def test_replication_server_id(sys_db: StandardDatabase, bad_db: StandardDatabase):
+    result = await sys_db.replication.server_id()
     assert isinstance(result, str)
 
     with assert_raises(ReplicationServerIDError) as err:
-        bad_db.replication.server_id()
+        await bad_db.replication.server_id()
     assert err.value.error_code in {FORBIDDEN, DATABASE_NOT_FOUND}
 
 
-def test_replication_synchronize(sys_db, bad_db, url, replication):
+async def test_replication_synchronize(sys_db: StandardDatabase, bad_db: StandardDatabase, url, replication):
     if not replication:
         pytest.skip("Only tested for replication")
 
-    result = sys_db.replication.synchronize(
+    result = await sys_db.replication.synchronize(
         endpoint="tcp://192.168.1.65:8500",
         database="test",
         username="root",
@@ -284,5 +288,5 @@ def test_replication_synchronize(sys_db, bad_db, url, replication):
     assert "last_log_tick" in result
 
     with assert_raises(ReplicationSyncError) as err:
-        bad_db.replication.synchronize(endpoint=url)
+        await bad_db.replication.synchronize(endpoint=url)
     assert err.value.error_code in {FORBIDDEN, DATABASE_NOT_FOUND}

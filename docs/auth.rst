@@ -1,27 +1,27 @@
 Authentication
 --------------
 
-Python-arango supports two HTTP authentication methods: basic and JSON Web
+aioarango supports two HTTP authentication methods: basic and JSON Web
 Tokens (JWT).
 
 Basic Authentication
 ====================
 
-This is python-arango's default authentication method.
+This is aioarango's default authentication method.
 
 **Example:**
 
 .. testcode::
-    from arango import ArangoClient
+    from aioarango import ArangoClient
 
     # Initialize the ArangoDB client.
     client = ArangoClient()
 
     # Connect to "test" database as root user using basic auth.
-    db = client.db('test', username='root', password='passwd')
+    db = await client.db('test', username='root', password='passwd')
 
     # The authentication method can be given explicitly.
-    db = client.db(
+    db = await client.db(
         'test',
         username='root',
         password='passwd',
@@ -31,7 +31,7 @@ This is python-arango's default authentication method.
 JSON Web Tokens (JWT)
 =====================
 
-Python-arango automatically obtains JSON web tokens from the server using
+aioarango automatically obtains JSON web tokens from the server using
 username and password. It also refreshes expired tokens and retries requests.
 The client and server clocks must be synchronized for the automatic refresh
 to work correctly.
@@ -39,13 +39,13 @@ to work correctly.
 **Example:**
 
 .. testcode::
-    from arango import ArangoClient
+    from aioarango import ArangoClient
 
     # Initialize the ArangoDB client.
     client = ArangoClient()
 
     # Connect to "test" database as root user using JWT.
-    db = client.db(
+    db = await client.db(
         'test',
         username='root',
         password='passwd',
@@ -53,7 +53,7 @@ to work correctly.
     )
 
     # Manually refresh the token.
-    db.conn.refresh_token()
+    await db.conn.refresh_token()
 
     # Override the token expiry compare leeway in seconds (default: 0) to
     # compensate for out-of-sync clocks between the client and server.
@@ -70,7 +70,7 @@ User generated JWT token can be used for superuser access.
 
     import jwt
 
-    from arango import ArangoClient
+    from aioarango import ArangoClient
 
     # Initialize the ArangoDB client.
     client = ArangoClient()
@@ -88,4 +88,4 @@ User generated JWT token can be used for superuser access.
     ).decode('utf-8')
 
     # Connect to "test" database as superuser using the token.
-    db = client.db('test', superuser_token=token)
+    db = await client.db('test', superuser_token=token)

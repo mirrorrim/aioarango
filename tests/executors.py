@@ -1,32 +1,32 @@
-import time
+import asyncio
 
-from arango.executor import AsyncApiExecutor, BatchApiExecutor, TransactionApiExecutor
-from arango.job import BatchJob
+from aioarango.executor import AsyncApiExecutor, BatchApiExecutor, TransactionApiExecutor
+from aioarango.job import BatchJob
 
 
 class TestAsyncApiExecutor(AsyncApiExecutor):
     def __init__(self, connection) -> None:
         super().__init__(connection=connection, return_result=True)
 
-    def execute(self, request, response_handler):
-        job = AsyncApiExecutor.execute(self, request, response_handler)
-        while job.status() != "done":
-            time.sleep(0.01)
-        return job.result()
+    async def execute(self, request, response_handler):
+        job = await AsyncApiExecutor.execute(self, request, response_handler)
+        while await job.status() != "done":
+            await asyncio.sleep(0.01)
+        return await job.result()
 
 
 class TestBatchExecutor(BatchApiExecutor):
     def __init__(self, connection) -> None:
         super().__init__(connection=connection, return_result=True)
 
-    def execute(self, request, response_handler):
+    async def execute(self, request, response_handler):
         self._committed = False
         self._queue.clear()
 
         job = BatchJob(response_handler)
         self._queue[job.id] = (request, job)
-        self.commit()
-        return job.result()
+        await self.commit()
+        return await job.result()
 
 
 class TestTransactionApiExecutor(TransactionApiExecutor):
@@ -35,13 +35,12 @@ class TestTransactionApiExecutor(TransactionApiExecutor):
     def __init__(self, connection) -> None:
         self._conn = connection
 
-    def execute(self, request, response_handler):
+    async def execute(self, request, response_handler):
         if request.read is request.write is request.exclusive is None:
-            resp = self._conn.send_request(request)
+            resp = await self._conn.send_request(request)
             return response_handler(resp)
 
-        super().__init__(
-            connection=self._conn,
+        await self.begin(
             sync=True,
             allow_implicit=False,
             lock_timeout=0,
@@ -50,5 +49,5 @@ class TestTransactionApiExecutor(TransactionApiExecutor):
             exclusive=request.exclusive,
         )
         result = super().execute(request, response_handler)
-        self.commit()
+        await self.commit()
         return result

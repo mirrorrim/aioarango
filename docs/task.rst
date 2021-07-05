@@ -9,19 +9,19 @@ the database they are defined in.
 
 .. testcode::
 
-    from arango import ArangoClient
+    from aioarango import ArangoClient
 
     # Initialize the ArangoDB client.
     client = ArangoClient()
 
     # Connect to "test" database as root user.
-    db = client.db('test', username='root', password='passwd')
+    db = await client.db('test', username='root', password='passwd')
 
     # List all active tasks
-    db.tasks()
+    await db.tasks()
 
     # Create a new task which simply prints parameters.
-    db.create_task(
+    await db.create_task(
         name='test_task',
         command='''
             var task = function(params){
@@ -37,10 +37,10 @@ the database they are defined in.
     )
 
     # Retrieve details on a task by ID.
-    db.task('001')
+    await db.task('001')
 
     # Delete an existing task by ID.
-    db.delete_task('001', ignore_missing=True)
+    await db.delete_task('001', ignore_missing=True)
 
 .. note::
     When deleting a database, any tasks that were initialized under its context

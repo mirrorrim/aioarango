@@ -1,4 +1,4 @@
-from arango.request import Request
+from aioarango.request import Request
 
 
 def test_request_no_data():

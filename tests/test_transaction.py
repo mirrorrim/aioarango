@@ -1,21 +1,27 @@
 import pytest
 
-from arango.database import TransactionDatabase
-from arango.exceptions import (
+from aioarango.collection import StandardCollection
+from aioarango.database import StandardDatabase, TransactionDatabase
+from aioarango.exceptions import (
     TransactionAbortError,
     TransactionCommitError,
     TransactionExecuteError,
     TransactionInitError,
     TransactionStatusError,
 )
+from aioarango.graph import Graph
 from tests.helpers import extract
 
+pytestmark = pytest.mark.asyncio
 
-def test_transaction_execute_raw(db, col, docs):
+
+async def test_transaction_execute_raw(
+    db: StandardDatabase, col: StandardCollection, docs
+):
     # Test execute raw transaction
     doc = docs[0]
     key = doc["_key"]
-    result = db.execute_transaction(
+    result = await db.execute_transaction(
         command=f"""
         function (params) {{
             var db = require('internal').db;
@@ -34,16 +40,18 @@ def test_transaction_execute_raw(db, col, docs):
         intermediate_commit_size=10000,
     )
     assert result is True
-    assert doc in col and col[key]["val"] == 1
+    assert col.has(doc, check_rev=False) and (await col.get(key))["val"] == 1
 
     # Test execute invalid transaction
     with pytest.raises(TransactionExecuteError) as err:
-        db.execute_transaction(command="INVALID COMMAND")
+        await db.execute_transaction(command="INVALID COMMAND")
     assert err.value.error_code == 10
 
 
-def test_transaction_init(db, bad_db, col, username):
-    txn_db = db.begin_transaction()
+async def test_transaction_init(
+    db: StandardDatabase, bad_db: StandardDatabase, col: StandardCollection, username
+):
+    txn_db = await db.begin_transaction()
 
     assert isinstance(txn_db, TransactionDatabase)
     assert txn_db.username == username
@@ -64,32 +72,32 @@ def test_transaction_init(db, bad_db, col, username):
     assert txn_aql.db_name == db.name
 
     with pytest.raises(TransactionInitError) as err:
-        bad_db.begin_transaction()
+        await bad_db.begin_transaction()
     assert err.value.error_code in {11, 1228}
 
 
-def test_transaction_status(db, col, docs):
-    txn_db = db.begin_transaction(read=col.name)
-    assert txn_db.transaction_status() == "running"
+async def test_transaction_status(db: StandardDatabase, col: StandardCollection, docs):
+    txn_db = await db.begin_transaction(read=col.name)
+    assert await txn_db.transaction_status() == "running"
 
-    txn_db.commit_transaction()
-    assert txn_db.transaction_status() == "committed"
+    await txn_db.commit_transaction()
+    assert await txn_db.transaction_status() == "committed"
 
-    txn_db = db.begin_transaction(read=col.name)
-    assert txn_db.transaction_status() == "running"
+    txn_db = await db.begin_transaction(read=col.name)
+    assert await txn_db.transaction_status() == "running"
 
-    txn_db.abort_transaction()
-    assert txn_db.transaction_status() == "aborted"
+    await txn_db.abort_transaction()
+    assert await txn_db.transaction_status() == "aborted"
 
     # Test transaction_status with an illegal transaction ID
     txn_db._executor._id = "illegal"
     with pytest.raises(TransactionStatusError) as err:
-        txn_db.transaction_status()
+        await txn_db.transaction_status()
     assert err.value.error_code in {10, 1655}
 
 
-def test_transaction_commit(db, col, docs):
-    txn_db = db.begin_transaction(
+async def test_transaction_commit(db: StandardDatabase, col: StandardCollection, docs):
+    txn_db = await db.begin_transaction(
         read=col.name,
         write=col.name,
         exclusive=[],
@@ -100,52 +108,54 @@ def test_transaction_commit(db, col, docs):
     )
     txn_col = txn_db.collection(col.name)
 
-    assert "_rev" in txn_col.insert(docs[0])
-    assert "_rev" in txn_col.delete(docs[0])
-    assert "_rev" in txn_col.insert(docs[1])
-    assert "_rev" in txn_col.delete(docs[1])
-    assert "_rev" in txn_col.insert(docs[2])
-    txn_db.commit_transaction()
+    assert "_rev" in await txn_col.insert(docs[0])
+    assert "_rev" in await txn_col.delete(docs[0])
+    assert "_rev" in await txn_col.insert(docs[1])
+    assert "_rev" in await txn_col.delete(docs[1])
+    assert "_rev" in await txn_col.insert(docs[2])
+    await txn_db.commit_transaction()
 
-    assert extract("_key", col.all()) == [docs[2]["_key"]]
-    assert txn_db.transaction_status() == "committed"
+    assert extract("_key", [doc async for doc in await col.all()]) == [docs[2]["_key"]]
+    assert await txn_db.transaction_status() == "committed"
 
     # Test commit_transaction with an illegal transaction ID
     txn_db._executor._id = "illegal"
     with pytest.raises(TransactionCommitError) as err:
-        txn_db.commit_transaction()
+        await txn_db.commit_transaction()
     assert err.value.error_code in {10, 1655}
 
 
-def test_transaction_abort(db, col, docs):
-    txn_db = db.begin_transaction(write=col.name)
+async def test_transaction_abort(db: StandardDatabase, col: StandardCollection, docs):
+    txn_db = await db.begin_transaction(write=col.name)
     txn_col = txn_db.collection(col.name)
 
-    assert "_rev" in txn_col.insert(docs[0])
-    assert "_rev" in txn_col.delete(docs[0])
-    assert "_rev" in txn_col.insert(docs[1])
-    assert "_rev" in txn_col.delete(docs[1])
-    assert "_rev" in txn_col.insert(docs[2])
-    txn_db.abort_transaction()
+    assert "_rev" in await txn_col.insert(docs[0])
+    assert "_rev" in await txn_col.delete(docs[0])
+    assert "_rev" in await txn_col.insert(docs[1])
+    assert "_rev" in await txn_col.delete(docs[1])
+    assert "_rev" in await txn_col.insert(docs[2])
+    await txn_db.abort_transaction()
 
-    assert extract("_key", col.all()) == []
-    assert txn_db.transaction_status() == "aborted"
+    assert extract("_key", [doc async for doc in await col.all()]) == []
+    assert await txn_db.transaction_status() == "aborted"
 
     txn_db._executor._id = "illegal"
     with pytest.raises(TransactionAbortError) as err:
-        txn_db.abort_transaction()
+        await txn_db.abort_transaction()
     assert err.value.error_code in {10, 1655}
 
 
-def test_transaction_graph(db, graph, fvcol, fvdocs):
-    col_names = [c["name"] for c in db.collections() if c["name"].startswith("test")]
-    txn_db = db.begin_transaction(write=col_names)
+async def test_transaction_graph(db: StandardDatabase, graph: Graph, fvcol, fvdocs):
+    col_names = [
+        c["name"] for c in await db.collections() if c["name"].startswith("test")
+    ]
+    txn_db = await db.begin_transaction(write=col_names)
     vcol = txn_db.graph(graph.name).vertex_collection(fvcol.name)
 
-    vcol.insert(fvdocs[0])
-    assert len(vcol) == 1
+    await vcol.insert(fvdocs[0])
+    assert await vcol.count() == 1
 
-    vcol.delete(fvdocs[0])
-    assert len(vcol) == 0
+    await vcol.delete(fvdocs[0])
+    assert await vcol.count() == 0
 
-    txn_db.commit_transaction()
+    await txn_db.commit_transaction()

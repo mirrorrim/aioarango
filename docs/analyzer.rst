@@ -1,7 +1,7 @@
 Analyzers
 ---------
 
-Python-arango supports **analyzers**. For more information on analyzers, refer
+aioarango supports **analyzers**. For more information on analyzers, refer
 to `ArangoDB manual`_.
 
 .. _ArangoDB manual: https://docs.arangodb.com
@@ -10,19 +10,19 @@ to `ArangoDB manual`_.
 
 .. testcode::
 
-    from arango import ArangoClient
+    from aioarango import ArangoClient
 
     # Initialize the ArangoDB client.
     client = ArangoClient()
 
     # Connect to "test" database as root user.
-    db = client.db('test', username='root', password='passwd')
+    db = await client.db('test', username='root', password='passwd')
 
     # Retrieve list of analyzers.
-    db.analyzers()
+    await db.analyzers()
 
     # Create an analyzer.
-    db.create_analyzer(
+    await db.create_analyzer(
         name='test_analyzer',
         analyzer_type='identity',
         properties={},
@@ -30,6 +30,6 @@ to `ArangoDB manual`_.
     )
 
     # Delete an analyzer.
-    db.delete_analyzer('test_analyzer', ignore_missing=True)
+    await db.delete_analyzer('test_analyzer', ignore_missing=True)
 
 Refer to :ref:`StandardDatabase` class for API specification.

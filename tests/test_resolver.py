@@ -1,4 +1,4 @@
-from arango.resolver import (
+from aioarango.resolver import (
     RandomHostResolver,
     RoundRobinHostResolver,
     SingleHostResolver,

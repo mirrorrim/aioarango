@@ -1,7 +1,8 @@
 import pytest
 
-from arango.errno import DATABASE_NOT_FOUND, FORBIDDEN, HTTP_UNAUTHORIZED
-from arango.exceptions import (
+from aioarango.database import StandardDatabase
+from aioarango.errno import DATABASE_NOT_FOUND, FORBIDDEN, HTTP_UNAUTHORIZED
+from aioarango.exceptions import (
     WALConfigureError,
     WALFlushError,
     WALLastTickError,
@@ -12,16 +13,18 @@ from arango.exceptions import (
 )
 from tests.helpers import assert_raises
 
+pytestmark = pytest.mark.asyncio
 
-def test_wal_misc_methods(sys_db, bad_db):
+
+async def test_wal_misc_methods(sys_db: StandardDatabase, bad_db: StandardDatabase):
     try:
-        sys_db.wal.properties()
+        await sys_db.wal.properties()
     except WALPropertiesError as wal_err:
         if wal_err.http_code == 501:
             pytest.skip("WAL not implemented")
 
     # Test get properties
-    properties = sys_db.wal.properties()
+    properties = await sys_db.wal.properties()
     assert "oversized_ops" in properties
     assert "log_size" in properties
     assert "historic_logs" in properties
@@ -31,11 +34,11 @@ def test_wal_misc_methods(sys_db, bad_db):
 
     # Test get properties with bad database
     with assert_raises(WALPropertiesError) as err:
-        bad_db.wal.properties()
+        await bad_db.wal.properties()
     assert err.value.error_code in {FORBIDDEN, DATABASE_NOT_FOUND}
 
     # Test configure properties
-    sys_db.wal.configure(
+    await sys_db.wal.configure(
         historic_logs=15,
         oversized_ops=False,
         log_size=30000000,
@@ -43,7 +46,7 @@ def test_wal_misc_methods(sys_db, bad_db):
         throttle_limit=0,
         throttle_wait=16000,
     )
-    properties = sys_db.wal.properties()
+    properties = await sys_db.wal.properties()
     assert properties["historic_logs"] == 15
     assert properties["oversized_ops"] is False
     assert properties["log_size"] == 30000000
@@ -53,34 +56,36 @@ def test_wal_misc_methods(sys_db, bad_db):
 
     # Test configure properties with bad database
     with assert_raises(WALConfigureError) as err:
-        bad_db.wal.configure(log_size=2000000)
+        await bad_db.wal.configure(log_size=2000000)
     assert err.value.error_code in {FORBIDDEN, DATABASE_NOT_FOUND}
 
     # Test get transactions
-    result = sys_db.wal.transactions()
+    result = await sys_db.wal.transactions()
     assert "count" in result
     assert "last_collected" in result
 
     # Test get transactions with bad database
     with assert_raises(WALTransactionListError) as err:
-        bad_db.wal.transactions()
+        await bad_db.wal.transactions()
     assert err.value.error_code in {FORBIDDEN, DATABASE_NOT_FOUND}
 
     # Test flush
-    result = sys_db.wal.flush(garbage_collect=False, sync=False)
+    result = await sys_db.wal.flush(garbage_collect=False, sync=False)
     assert isinstance(result, bool)
 
     # Test flush with bad database
     with assert_raises(WALFlushError) as err:
-        bad_db.wal.flush(garbage_collect=False, sync=False)
+        await bad_db.wal.flush(garbage_collect=False, sync=False)
     assert err.value.error_code in {FORBIDDEN, DATABASE_NOT_FOUND}
 
 
-def test_wal_tick_ranges(sys_db, bad_db, cluster):
+async def test_wal_tick_ranges(
+    sys_db: StandardDatabase, bad_db: StandardDatabase, cluster
+):
     if cluster:
         pytest.skip("Not tested in a cluster setup")
 
-    result = sys_db.wal.tick_ranges()
+    result = await sys_db.wal.tick_ranges()
     assert "server" in result
     assert "time" in result
     assert "tick_min" in result
@@ -88,30 +93,32 @@ def test_wal_tick_ranges(sys_db, bad_db, cluster):
 
     # Test tick_ranges with bad database
     with assert_raises(WALTickRangesError) as err:
-        bad_db.wal.tick_ranges()
+        await bad_db.wal.tick_ranges()
     assert err.value.error_code in {FORBIDDEN, DATABASE_NOT_FOUND}
 
 
-def test_wal_last_tick(sys_db, bad_db, cluster):
+async def test_wal_last_tick(
+    sys_db: StandardDatabase, bad_db: StandardDatabase, cluster
+):
     if cluster:
         pytest.skip("Not tested in a cluster setup")
 
-    result = sys_db.wal.last_tick()
+    result = await sys_db.wal.last_tick()
     assert "time" in result
     assert "tick" in result
     assert "server" in result
 
     # Test last_tick with bad database
     with assert_raises(WALLastTickError) as err:
-        bad_db.wal.last_tick()
+        await bad_db.wal.last_tick()
     assert err.value.error_code in {FORBIDDEN, DATABASE_NOT_FOUND}
 
 
-def test_wal_tail(sys_db, bad_db, cluster):
+async def test_wal_tail(sys_db: StandardDatabase, bad_db: StandardDatabase, cluster):
     if cluster:
         pytest.skip("Not tested in a cluster setup")
 
-    result = sys_db.wal.tail(
+    result = await sys_db.wal.tail(
         lower=0,
         upper=1000000,
         last_scanned=0,
@@ -131,5 +138,5 @@ def test_wal_tail(sys_db, bad_db, cluster):
 
     # Test tick_ranges with bad database
     with assert_raises(WALTailError) as err:
-        bad_db.wal.tail()
+        await bad_db.wal.tail()
     assert err.value.http_code == HTTP_UNAUTHORIZED

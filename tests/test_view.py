@@ -1,4 +1,8 @@
-from arango.exceptions import (
+import pytest
+
+from aioarango.collection import StandardCollection
+from aioarango.database import StandardDatabase
+from aioarango.exceptions import (
     ViewCreateError,
     ViewDeleteError,
     ViewGetError,
@@ -9,14 +13,18 @@ from arango.exceptions import (
 )
 from tests.helpers import assert_raises, generate_view_name
 
+pytestmark = pytest.mark.asyncio
 
-def test_view_management(db, bad_db, col, cluster):
+
+async def test_view_management(
+    db: StandardDatabase, bad_db: StandardDatabase, col: StandardCollection, cluster
+):
     # Test create view
     view_name = generate_view_name()
     bad_view_name = generate_view_name()
     view_type = "arangosearch"
 
-    result = db.create_view(
+    result = await db.create_view(
         view_name,
         view_type,
         {"consolidationIntervalMsec": 50000, "links": {col.name: {}}},
@@ -31,11 +39,11 @@ def test_view_management(db, bad_db, col, cluster):
 
     # Test create duplicate view
     with assert_raises(ViewCreateError) as err:
-        db.create_view(view_name, view_type, {"consolidationIntervalMsec": 50000})
+        await db.create_view(view_name, view_type, {"consolidationIntervalMsec": 50000})
     assert err.value.error_code == 1207
 
     # Test list views
-    result = db.views()
+    result = await db.views()
     assert len(result) == 1
     view = result[0]
     assert view["id"] == view_id
@@ -44,11 +52,11 @@ def test_view_management(db, bad_db, col, cluster):
 
     # Test list views with bad database
     with assert_raises(ViewListError) as err:
-        bad_db.views()
+        await bad_db.views()
     assert err.value.error_code in {11, 1228}
 
     # Test get view
-    view = db.view(view_name)
+    view = await db.view(view_name)
     assert view["id"] == view_id
     assert view["name"] == view_name
     assert view["type"] == view_type
@@ -56,11 +64,11 @@ def test_view_management(db, bad_db, col, cluster):
 
     # Test get missing view
     with assert_raises(ViewGetError) as err:
-        db.view(bad_view_name)
+        await db.view(bad_view_name)
     assert err.value.error_code == 1203
 
     # Test update view
-    view = db.update_view(view_name, {"consolidationIntervalMsec": 70000})
+    view = await db.update_view(view_name, {"consolidationIntervalMsec": 70000})
     assert view["id"] == view_id
     assert view["name"] == view_name
     assert view["type"] == view_type
@@ -68,11 +76,11 @@ def test_view_management(db, bad_db, col, cluster):
 
     # Test update view with bad database
     with assert_raises(ViewUpdateError) as err:
-        bad_db.update_view(view_name, {"consolidationIntervalMsec": 80000})
+        await bad_db.update_view(view_name, {"consolidationIntervalMsec": 80000})
     assert err.value.error_code in {11, 1228}
 
     # Test replace view
-    view = db.replace_view(view_name, {"consolidationIntervalMsec": 40000})
+    view = await db.replace_view(view_name, {"consolidationIntervalMsec": 40000})
     assert view["id"] == view_id
     assert view["name"] == view_name
     assert view["type"] == view_type
@@ -80,7 +88,7 @@ def test_view_management(db, bad_db, col, cluster):
 
     # Test replace view with bad database
     with assert_raises(ViewReplaceError) as err:
-        bad_db.replace_view(view_name, {"consolidationIntervalMsec": 7000})
+        await bad_db.replace_view(view_name, {"consolidationIntervalMsec": 7000})
     assert err.value.error_code in {11, 1228}
 
     if cluster:
@@ -88,8 +96,8 @@ def test_view_management(db, bad_db, col, cluster):
     else:
         # Test rename view
         new_view_name = generate_view_name()
-        assert db.rename_view(view_name, new_view_name) is True
-        result = db.views()
+        assert await db.rename_view(view_name, new_view_name) is True
+        result = await db.views()
         assert len(result) == 1
         view = result[0]
         assert view["id"] == view_id
@@ -97,26 +105,28 @@ def test_view_management(db, bad_db, col, cluster):
 
         # Test rename missing view
         with assert_raises(ViewRenameError) as err:
-            db.rename_view(bad_view_name, view_name)
+            await db.rename_view(bad_view_name, view_name)
         assert err.value.error_code == 1203
 
     # Test delete view
-    assert db.delete_view(new_view_name) is True
-    assert len(db.views()) == 0
+    assert await db.delete_view(new_view_name) is True
+    assert len(await db.views()) == 0
 
     # Test delete missing view
     with assert_raises(ViewDeleteError) as err:
-        db.delete_view(new_view_name)
+        await db.delete_view(new_view_name)
     assert err.value.error_code == 1203
 
     # Test delete missing view with ignore_missing set to True
-    assert db.delete_view(view_name, ignore_missing=True) is False
+    assert await db.delete_view(view_name, ignore_missing=True) is False
 
 
-def test_arangosearch_view_management(db, bad_db, cluster):
+async def test_arangosearch_view_management(
+    db: StandardDatabase, bad_db: StandardDatabase, cluster
+):
     # Test create arangosearch view
     view_name = generate_view_name()
-    result = db.create_arangosearch_view(
+    result = await db.create_arangosearch_view(
         view_name, {"consolidationIntervalMsec": 50000}
     )
     assert "id" in result
@@ -127,10 +137,12 @@ def test_arangosearch_view_management(db, bad_db, cluster):
 
     # Test create duplicate arangosearch view
     with assert_raises(ViewCreateError) as err:
-        db.create_arangosearch_view(view_name, {"consolidationIntervalMsec": 50000})
+        await db.create_arangosearch_view(
+            view_name, {"consolidationIntervalMsec": 50000}
+        )
     assert err.value.error_code == 1207
 
-    result = db.views()
+    result = await db.views()
     if not cluster:
         assert len(result) == 1
         view = result[0]
@@ -139,7 +151,9 @@ def test_arangosearch_view_management(db, bad_db, cluster):
         assert view["type"] == "arangosearch"
 
     # Test update arangosearch view
-    view = db.update_arangosearch_view(view_name, {"consolidationIntervalMsec": 70000})
+    view = await db.update_arangosearch_view(
+        view_name, {"consolidationIntervalMsec": 70000}
+    )
     assert view["id"] == view_id
     assert view["name"] == view_name
     assert view["type"].lower() == "arangosearch"
@@ -147,11 +161,15 @@ def test_arangosearch_view_management(db, bad_db, cluster):
 
     # Test update arangosearch view with bad database
     with assert_raises(ViewUpdateError) as err:
-        bad_db.update_arangosearch_view(view_name, {"consolidationIntervalMsec": 70000})
+        await bad_db.update_arangosearch_view(
+            view_name, {"consolidationIntervalMsec": 70000}
+        )
     assert err.value.error_code in {11, 1228}
 
     # Test replace arangosearch view
-    view = db.replace_arangosearch_view(view_name, {"consolidationIntervalMsec": 40000})
+    view = await db.replace_arangosearch_view(
+        view_name, {"consolidationIntervalMsec": 40000}
+    )
     assert view["id"] == view_id
     assert view["name"] == view_name
     assert view["type"] == "arangosearch"
@@ -159,10 +177,10 @@ def test_arangosearch_view_management(db, bad_db, cluster):
 
     # Test replace arangosearch with bad database
     with assert_raises(ViewReplaceError) as err:
-        bad_db.replace_arangosearch_view(
+        await bad_db.replace_arangosearch_view(
             view_name, {"consolidationIntervalMsec": 70000}
         )
     assert err.value.error_code in {11, 1228}
 
     # Test delete arangosearch view
-    assert db.delete_view(view_name, ignore_missing=False) is True
+    assert await db.delete_view(view_name, ignore_missing=False) is True

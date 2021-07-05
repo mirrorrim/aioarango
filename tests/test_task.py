@@ -1,4 +1,7 @@
-from arango.exceptions import (
+import pytest
+
+from aioarango.database import StandardDatabase
+from aioarango.exceptions import (
     TaskCreateError,
     TaskDeleteError,
     TaskGetError,
@@ -6,13 +9,17 @@ from arango.exceptions import (
 )
 from tests.helpers import assert_raises, extract, generate_task_id, generate_task_name
 
+pytestmark = pytest.mark.asyncio
 
-def test_task_management(sys_db, db, bad_db):
+
+async def test_task_management(
+    sys_db: StandardDatabase, db: StandardDatabase, bad_db: StandardDatabase
+):
     test_command = 'require("@arangodb").print(params);'
 
     # Test create task with random ID
     task_name = generate_task_name()
-    new_task = db.create_task(
+    new_task = await db.create_task(
         name=task_name,
         command=test_command,
         params={"foo": 1, "bar": 2},
@@ -26,12 +33,12 @@ def test_task_management(sys_db, db, bad_db):
     assert isinstance(new_task["id"], str)
 
     # Test get existing task
-    assert db.task(new_task["id"]) == new_task
+    assert await db.task(new_task["id"]) == new_task
 
     # Test create task with specific ID
     task_name = generate_task_name()
     task_id = generate_task_id()
-    new_task = db.create_task(
+    new_task = await db.create_task(
         name=task_name,
         command=test_command,
         params={"foo": 1, "bar": 2},
@@ -45,11 +52,11 @@ def test_task_management(sys_db, db, bad_db):
     assert new_task["type"] == "periodic"
     assert new_task["database"] == db.name
     assert isinstance(new_task["created"], float)
-    assert db.task(new_task["id"]) == new_task
+    assert await db.task(new_task["id"]) == new_task
 
     # Test create duplicate task
     with assert_raises(TaskCreateError) as err:
-        db.create_task(
+        await db.create_task(
             name=task_name,
             command=test_command,
             params={"foo": 1, "bar": 2},
@@ -58,7 +65,7 @@ def test_task_management(sys_db, db, bad_db):
     assert err.value.error_code == 1851
 
     # Test list tasks
-    for task in sys_db.tasks():
+    for task in await sys_db.tasks():
         assert task["type"] in {"periodic", "timed"}
         assert isinstance(task["id"], str)
         assert isinstance(task["name"], str)
@@ -67,24 +74,24 @@ def test_task_management(sys_db, db, bad_db):
 
     # Test list tasks with bad database
     with assert_raises(TaskListError) as err:
-        bad_db.tasks()
+        await bad_db.tasks()
     assert err.value.error_code in {11, 1228}
 
     # Test get missing task
     with assert_raises(TaskGetError) as err:
-        db.task(generate_task_id())
+        await db.task(generate_task_id())
     assert err.value.error_code == 1852
 
     # Test delete existing task
-    assert task_id in extract("id", db.tasks())
-    assert db.delete_task(task_id) is True
-    assert task_id not in extract("id", db.tasks())
+    assert task_id in extract("id", await db.tasks())
+    assert await db.delete_task(task_id) is True
+    assert task_id not in extract("id", await db.tasks())
     with assert_raises(TaskGetError) as err:
-        db.task(task_id)
+        await db.task(task_id)
     assert err.value.error_code == 1852
 
     # Test delete missing task
     with assert_raises(TaskDeleteError) as err:
-        db.delete_task(generate_task_id(), ignore_missing=False)
+        await db.delete_task(generate_task_id(), ignore_missing=False)
     assert err.value.error_code == 1852
-    assert db.delete_task(task_id, ignore_missing=True) is False
+    assert await db.delete_task(task_id, ignore_missing=True) is False

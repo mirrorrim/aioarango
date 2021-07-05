@@ -1,26 +1,26 @@
 Users and Permissions
 ---------------------
 
-Python-arango provides operations for managing users and permissions. Most of
+aioarango provides operations for managing users and permissions. Most of
 these operations can only be performed by admin users via ``_system`` database.
 
 **Example:**
 
 .. testcode::
 
-    from arango import ArangoClient
+    from aioarango import ArangoClient
 
     # Initialize the ArangoDB client.
     client = ArangoClient()
 
     # Connect to "_system" database as root user.
-    sys_db = client.db('_system', username='root', password='passwd')
+    sys_db = await client.db('_system', username='root', password='passwd')
 
     # List all users.
-    sys_db.users()
+    await sys_db.users()
 
     # Create a new user.
-    sys_db.create_user(
+    await sys_db.create_user(
         username='johndoe@gmail.com',
         password='first_password',
         active=True,
@@ -28,13 +28,13 @@ these operations can only be performed by admin users via ``_system`` database.
     )
 
     # Check if a user exists.
-    sys_db.has_user('johndoe@gmail.com')
+    await sys_db.has_user('johndoe@gmail.com')
 
     # Retrieve details of a user.
-    sys_db.user('johndoe@gmail.com')
+    await sys_db.user('johndoe@gmail.com')
 
     # Update an existing user.
-    sys_db.update_user(
+    await sys_db.update_user(
         username='johndoe@gmail.com',
         password='second_password',
         active=True,
@@ -42,7 +42,7 @@ these operations can only be performed by admin users via ``_system`` database.
     )
 
     # Replace an existing user.
-    sys_db.replace_user(
+    await sys_db.replace_user(
         username='johndoe@gmail.com',
         password='third_password',
         active=True,
@@ -50,30 +50,30 @@ these operations can only be performed by admin users via ``_system`` database.
     )
 
     # Retrieve user permissions for all databases and collections.
-    sys_db.permissions('johndoe@gmail.com')
+    await sys_db.permissions('johndoe@gmail.com')
 
     # Retrieve user permission for "test" database.
-    sys_db.permission(
+    await sys_db.permission(
         username='johndoe@gmail.com',
         database='test'
     )
 
     # Retrieve user permission for "students" collection in "test" database.
-    sys_db.permission(
+    await sys_db.permission(
         username='johndoe@gmail.com',
         database='test',
         collection='students'
     )
 
     # Update user permission for "test" database.
-    sys_db.update_permission(
+    await sys_db.update_permission(
         username='johndoe@gmail.com',
         permission='rw',
         database='test'
     )
 
     # Update user permission for "students" collection in "test" database.
-    sys_db.update_permission(
+    await sys_db.update_permission(
         username='johndoe@gmail.com',
         permission='ro',
         database='test',
@@ -81,13 +81,13 @@ these operations can only be performed by admin users via ``_system`` database.
     )
 
     # Reset user permission for "test" database.
-    sys_db.reset_permission(
+    await sys_db.reset_permission(
         username='johndoe@gmail.com',
         database='test'
     )
 
     # Reset user permission for "students" collection in "test" database.
-    sys_db.reset_permission(
+    await sys_db.reset_permission(
         username='johndoe@gmail.com',
         database='test',
         collection='students'

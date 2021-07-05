@@ -1,18 +1,18 @@
 Getting Started
 ---------------
 
-Here is an example showing how **python-arango** client can be used:
+Here is an example showing how **aioarango** client can be used:
 
 .. testcode::
 
-    from arango import ArangoClient
+    from aioarango import ArangoClient
 
     # Initialize the ArangoDB client.
     client = ArangoClient(hosts='http://localhost:8529')
 
     # Connect to "_system" database as root user.
     # This returns an API wrapper for "_system" database.
-    sys_db = client.db('_system', username='root', password='passwd')
+    sys_db = await client.db('_system', username='root', password='passwd')
 
     # Create a new database named "test" if it does not exist.
     if not sys_db.has_database('test'):
@@ -20,28 +20,28 @@ Here is an example showing how **python-arango** client can be used:
 
     # Connect to "test" database as root user.
     # This returns an API wrapper for "test" database.
-    db = client.db('test', username='root', password='passwd')
+    db = await client.db('test', username='root', password='passwd')
 
     # Create a new collection named "students" if it does not exist.
     # This returns an API wrapper for "students" collection.
-    if db.has_collection('students'):
+    if await db.has_collection('students'):
         students = db.collection('students')
     else:
-        students = db.create_collection('students')
+        students = await db.create_collection('students')
 
     # Add a hash index to the collection.
-    students.add_hash_index(fields=['name'], unique=False)
+    await students.add_hash_index(fields=['name'], unique=False)
 
     # Truncate the collection.
-    students.truncate()
+    await students.truncate()
 
     # Insert new documents into the collection.
-    students.insert({'name': 'jane', 'age': 19})
-    students.insert({'name': 'josh', 'age': 18})
-    students.insert({'name': 'jake', 'age': 21})
+    await students.insert({'name': 'jane', 'age': 19})
+    await students.insert({'name': 'josh', 'age': 18})
+    await students.insert({'name': 'jake', 'age': 21})
 
     # Execute an AQL query. This returns a result cursor.
-    cursor = db.aql.execute('FOR doc IN students RETURN doc')
+    cursor = await db.aql.execute('FOR doc IN students RETURN doc')
 
     # Iterate through the cursor to retrieve the documents.
-    student_names = [document['name'] for document in cursor]
+    student_names = [document['name'] async for document in cursor]

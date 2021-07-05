@@ -1,7 +1,7 @@
 Documents
 ---------
 
-In python-arango, a **document** is a Python dictionary with the following
+In aioarango, a **document** is a Python dictionary with the following
 properties:
 
 * Is JSON serializable.
@@ -66,13 +66,13 @@ Standard documents are managed via collection API wrapper:
 
 .. testcode::
 
-    from arango import ArangoClient
+    from aioarango import ArangoClient
 
     # Initialize the ArangoDB client.
     client = ArangoClient()
 
     # Connect to "test" database as root user.
-    db = client.db('test', username='root', password='passwd')
+    db = await client.db('test', username='root', password='passwd')
 
     # Get the API wrapper for "students" collection.
     students = db.collection('students')
@@ -84,69 +84,69 @@ Standard documents are managed via collection API wrapper:
     emma = {'_key': 'emma', 'GPA': 4.0, 'first': 'Emma', 'last': 'Park'}
 
     # Insert a new document. This returns the document metadata.
-    metadata = students.insert(lola)
+    metadata = await students.insert(lola)
     assert metadata['_id'] == 'students/lola'
     assert metadata['_key'] == 'lola'
 
     # Check if documents exist in the collection in multiple ways.
-    assert students.has('lola') and 'john' not in students
+    assert await students.has('lola') and not await students.has('john')
 
     # Retrieve the total document count in multiple ways.
-    assert students.count() == len(students) == 1
+    assert await students.count() == 1
 
     # Insert multiple documents in bulk.
-    students.import_bulk([abby, john, emma])
+    await students.import_bulk([abby, john, emma])
 
     # Retrieve one or more matching documents.
-    for student in students.find({'first': 'John'}):
+    async for student in await students.find({'first': 'John'}):
         assert student['_key'] == 'john'
         assert student['GPA'] == 3.6
         assert student['last'] == 'Kim'
 
     # Retrieve a document by key.
-    students.get('john')
+    await students.get('john')
 
     # Retrieve a document by ID.
-    students.get('students/john')
+    await students.get('students/john')
 
     # Retrieve a document by body with "_id" field.
-    students.get({'_id': 'students/john'})
+    await students.get({'_id': 'students/john'})
 
     # Retrieve a document by body with "_key" field.
-    students.get({'_key': 'john'})
+    await students.get({'_key': 'john'})
 
     # Retrieve multiple documents by ID, key or body.
-    students.get_many(['abby', 'students/lola', {'_key': 'john'}])
+    await students.get_many(['abby', 'students/lola', {'_key': 'john'}])
 
     # Update a single document.
     lola['GPA'] = 2.6
-    students.update(lola)
+    await students.update(lola)
 
     # Update one or more matching documents.
-    students.update_match({'last': 'Park'}, {'GPA': 3.0})
+    await students.update_match({'last': 'Park'}, {'GPA': 3.0})
 
     # Replace a single document.
     emma['GPA'] = 3.1
-    students.replace(emma)
+    await students.replace(emma)
 
     # Replace one or more matching documents.
     becky = {'first': 'Becky', 'last': 'Solis', 'GPA': '3.3'}
-    students.replace_match({'first': 'Emma'}, becky)
+    await students.replace_match({'first': 'Emma'}, becky)
 
     # Delete a document by key.
-    students.delete('john')
+    await students.delete('john')
 
     # Delete a document by ID.
-    students.delete('students/lola')
+    await students.delete('students/lola')
 
     # Delete a document by body with "_id" or "_key" field.
-    students.delete(emma)
+    await students.delete(emma)
 
     # Delete multiple documents. Missing ones are ignored.
-    students.delete_many([abby, 'john', 'students/lola'])
+    await students.delete_many([abby, 'john', 'students/lola'])
 
     # Iterate through all documents and update individually.
-    for student in students:
+    async for student in await students.all():
         student['GPA'] = 4.0
         student['happy'] = True
         students.update(student)
@@ -157,13 +157,13 @@ must provide document IDs instead of keys:
 
 .. testcode::
 
-    from arango import ArangoClient
+    from aioarango import ArangoClient
 
     # Initialize the ArangoDB client.
     client = ArangoClient()
 
     # Connect to "test" database as root user.
-    db = client.db('test', username='root', password='passwd')
+    db = await client.db('test', username='root', password='passwd')
 
     # Create some test documents to play around with.
     # The documents must have the "_id" field instead.
@@ -173,27 +173,27 @@ must provide document IDs instead of keys:
     emma = {'_id': 'students/emma', 'GPA': 4.0}
 
     # Insert a new document.
-    metadata = db.insert_document('students', lola)
+    metadata = await db.insert_document('students', lola)
     assert metadata['_id'] == 'students/lola'
     assert metadata['_key'] == 'lola'
 
     # Check if a document exists.
-    assert db.has_document(lola) is True
+    assert await db.has_document(lola) is True
 
     # Get a document (by ID or body with "_id" field).
-    db.document('students/lola')
-    db.document(abby)
+    await db.document('students/lola')
+    await db.document(abby)
 
     # Update a document.
     lola['GPA'] = 3.6
-    db.update_document(lola)
+    await db.update_document(lola)
 
     # Replace a document.
     lola['GPA'] = 3.4
-    db.replace_document(lola)
+    await db.replace_document(lola)
 
     # Delete a document (by ID or body with "_id" field).
-    db.delete_document('students/lola')
+    await db.delete_document('students/lola')
 
 See :ref:`StandardDatabase` and :ref:`StandardCollection` for API specification.
 

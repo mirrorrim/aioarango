@@ -1,9 +1,9 @@
 Cursors
 -------
 
-Many operations provided by python-arango (e.g. executing :doc:`aql` queries)
+Many operations provided by aioarango (e.g. executing :doc:`aql` queries)
 return result **cursors** to batch the network communication between ArangoDB
-server and python-arango client. Each HTTP request from a cursor fetches the
+server and aioarango client. Each HTTP request from a cursor fetches the
 next batch of results (usually documents). Depending on the query, the total
 number of items in the result set may or may not be known in advance.
 
@@ -11,16 +11,16 @@ number of items in the result set may or may not be known in advance.
 
 .. testcode::
 
-    from arango import ArangoClient
+    from aioarango import ArangoClient
 
     # Initialize the ArangoDB client.
     client = ArangoClient()
 
     # Connect to "test" database as root user.
-    db = client.db('test', username='root', password='passwd')
+    db = await client.db('test', username='root', password='passwd')
 
     # Set up some test data to query against.
-    db.collection('students').insert_many([
+    await db.collection('students').insert_many([
         {'_key': 'Abby', 'age': 22},
         {'_key': 'John', 'age': 18},
         {'_key': 'Mary', 'age': 21},
@@ -29,7 +29,7 @@ number of items in the result set may or may not be known in advance.
     ])
 
     # Execute an AQL query which returns a cursor object.
-    cursor = db.aql.execute(
+    cursor = await db.aql.execute(
         'FOR doc IN students FILTER doc.age > @val RETURN doc',
         bind_vars={'val': 17},
         batch_size=2,
@@ -65,41 +65,41 @@ number of items in the result set may or may not be known in advance.
 
     # Return the next item from the cursor. If current batch is depleted, the
     # next batch if fetched from the server automatically.
-    cursor.next()
+    await cursor.next()
 
     # Return the next item from the cursor. If current batch is depleted, an
     # exception is thrown. You need to fetch the next batch manually.
     cursor.pop()
 
     # Fetch the next batch and add them to the cursor object.
-    cursor.fetch()
+    await cursor.fetch()
 
     # Delete the cursor from the server.
-    cursor.close()
+    await cursor.close()
 
 See :ref:`Cursor` for API specification.
 
 If the fetched result batch is depleted while you are iterating over a cursor
-(or while calling the method :func:`arango.cursor.Cursor.next`), python-arango
+(or while calling the method :func:`aioarango.cursor.Cursor.next`), aioarango
 automatically sends an HTTP request to the server to fetch the next batch
 (just-in-time style). To control exactly when the fetches occur, you can use
-methods :func:`arango.cursor.Cursor.fetch` and :func:`arango.cursor.Cursor.pop`
+methods :func:`aioarango.cursor.Cursor.fetch` and :func:`arango.cursor.Cursor.pop`
 instead.
 
 **Example:**
 
 .. testcode::
 
-    from arango import ArangoClient
+    from aioarango import ArangoClient
 
     # Initialize the ArangoDB client.
     client = ArangoClient()
 
     # Connect to "test" database as root user.
-    db = client.db('test', username='root', password='passwd')
+    db = await client.db('test', username='root', password='passwd')
 
     # Set up some test data to query against.
-    db.collection('students').insert_many([
+    await db.collection('students').insert_many([
         {'_key': 'Abby', 'age': 22},
         {'_key': 'John', 'age': 18},
         {'_key': 'Mary', 'age': 21}
@@ -107,12 +107,12 @@ instead.
 
     # If you iterate over the cursor or call cursor.next(), batches are
     # fetched automatically from the server just-in-time style.
-    cursor = db.aql.execute('FOR doc IN students RETURN doc', batch_size=1)
-    result = [doc for doc in cursor]
+    cursor = await db.aql.execute('FOR doc IN students RETURN doc', batch_size=1)
+    result = [doc async for doc in cursor]
 
     # Alternatively, you can manually fetch and pop for finer control.
-    cursor = db.aql.execute('FOR doc IN students RETURN doc', batch_size=1)
+    cursor = await db.aql.execute('FOR doc IN students RETURN doc', batch_size=1)
     while cursor.has_more(): # Fetch until nothing is left on the server.
-        cursor.fetch()
+        await cursor.fetch()
     while not cursor.empty(): # Pop until nothing is left on the cursor.
         cursor.pop()

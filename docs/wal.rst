@@ -10,19 +10,19 @@ WAL operations can only be performed by admin users via ``_system`` database.
 
 .. code-block:: python
 
-    from arango import ArangoClient
+    from aioarango import ArangoClient
 
     # Initialize the ArangoDB client.
     client = ArangoClient()
 
     # Connect to "_system" database as root user.
-    sys_db = client.db('_system', username='root', password='passwd')
+    sys_db = await client.db('_system', username='root', password='passwd')
 
     # Get the WAL API wrapper.
     wal = sys_db.wal
 
     # Configure WAL properties.
-    wal.configure(
+    await wal.configure(
         historic_logs=15,
         oversized_ops=False,
         log_size=30000000,
@@ -32,21 +32,21 @@ WAL operations can only be performed by admin users via ``_system`` database.
     )
 
     # Retrieve WAL properties.
-    wal.properties()
+    await wal.properties()
 
     # List WAL transactions.
-    wal.transactions()
+    await wal.transactions()
 
     # Flush WAL with garbage collection.
-    wal.flush(garbage_collect=True)
+    await wal.flush(garbage_collect=True)
 
     # Get the available ranges of tick values.
-    wal.tick_ranges()
+    await wal.tick_ranges()
 
     # Get the last available tick value.
-    wal.last_tick()
+    await wal.last_tick()
 
     # Get recent WAL operations.
-    wal.tail()
+    await wal.tail()
 
 See :class:`WriteAheadLog` for API specification.

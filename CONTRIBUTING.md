@@ -10,7 +10,7 @@ pre-commit install         # Install git pre-commit hooks
 Run unit tests with coverage:
 
 ```shell
-py.test --cov=arango --cov-report=html  # Open htmlcov/index.html in your browser
+py.test --cov=aioarango --cov-report=html  # Open htmlcov/index.html in your browser
 ```
 
 Build and test documentation:
