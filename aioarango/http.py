@@ -64,7 +64,7 @@ class DefaultHTTPClient(HTTPClient):
     REQUEST_TIMEOUT = 60
     RETRY_ATTEMPTS = 3
 
-    def create_session(self, host: str) -> httpx.AsyncClient:
+    def create_session(self, host: str, verify: bool = True) -> httpx.AsyncClient:
         """Create and return a new session/connection.
 
         :param host: ArangoDB host URL.
@@ -72,7 +72,7 @@ class DefaultHTTPClient(HTTPClient):
         :returns: httpx client object
         :rtype: httpx.AsyncClient
         """
-        transport = httpx.AsyncHTTPTransport(retries=self.RETRY_ATTEMPTS)
+        transport = httpx.AsyncHTTPTransport(retries=self.RETRY_ATTEMPTS, verify=verify)
         return httpx.AsyncClient(transport=transport)
 
     async def send_request(
