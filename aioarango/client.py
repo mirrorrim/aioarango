@@ -49,6 +49,7 @@ class ArangoClient:
         http_client: Optional[HTTPClient] = None,
         serializer: Callable[..., str] = lambda x: dumps(x),
         deserializer: Callable[[str], Any] = lambda x: loads(x),
+        verify_ssl: bool = True,
     ) -> None:
         if isinstance(hosts, str):
             self._hosts = [host.strip("/") for host in hosts.split(",")]
@@ -68,7 +69,7 @@ class ArangoClient:
         self._http = http_client or DefaultHTTPClient()
         self._serializer = serializer
         self._deserializer = deserializer
-        self._sessions = [self._http.create_session(h) for h in self._hosts]
+        self._sessions = [self._http.create_session(h, verify_ssl) for h in self._hosts]
 
     def __repr__(self) -> str:
         return f"<ArangoClient {','.join(self._hosts)}>"
